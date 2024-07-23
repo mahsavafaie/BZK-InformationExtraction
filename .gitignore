@@ -1,0 +1,7 @@
+IE-GT.zip
+IE-GT/
+BZK/
+lightning_logs/
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]

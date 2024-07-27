@@ -10,25 +10,86 @@ from transformers import DonutProcessor, VisionEncoderDecoderModel, VisionEncode
 import re
 from nltk import edit_distance
 import numpy as np
+import os
+import datetime
 
 logger = logging.getLogger(__name__)
 
+# TODO: one model for each feature???
+# TODO: check for batch sizes larger than one
+
+def extract_info(sequence, tag_name, smallest_distance: bool = True, remove_tags_inside: bool = True, allow_partial_match: bool = False) -> str:
+    """
+    Extracts the information between the tags <s_tag_name> and </s_tag_name> from the sequence.
+    If smallest_distance is True, the function will return the information between the closest tags.
+    If tags_inside is 'remove', the tags will be removed from the extracted information.
+    """
+    start_tag = f"<s_{tag_name}>"
+    end_tag = f"<\/s_{tag_name}>"
+
+    possible_texts = []
+    for start_tag_match in re.finditer(start_tag, sequence):
+        for end_tag_match in re.finditer(end_tag, sequence):
+            if start_tag_match.end() <= end_tag_match.start():
+                possible_texts.append(sequence[start_tag_match.end():end_tag_match.start()])
+    if len(possible_texts) > 0:
+        selected_text = min(possible_texts, key=len) if smallest_distance else max(possible_texts, key=len)
+        if remove_tags_inside:
+            # Remove everything between < and >
+            selected_text = re.sub(r'<[^>]*>', '', selected_text)
+        return selected_text.strip()
+    else:
+        if not allow_partial_match:
+            return ""
+        # an open and close tag together in the right order does not exist
+        # -> search for text left to a closing tag e.g. foo</s_tag_name> or right to an opening tag e.g. <s_tag_name>foo
+        #    until the next tag is found
+        possible_texts = []
+        for start_tag_match in re.finditer(start_tag, sequence):
+            end_pos = min(sequence.find('<', start_tag_match.end()), sequence.find('>', start_tag_match.end()))
+            if end_pos == -1:
+                end_pos = len(sequence)
+            possible_texts.append(sequence[start_tag_match.end():end_pos])
+        for end_tag_match in re.finditer(end_tag, sequence):
+            start_pos = max(sequence.rfind('<', 0, end_tag_match.start()), sequence.rfind('>', 0, end_tag_match.start()))
+            if start_pos == -1:
+                start_pos = 0
+            else:
+                start_pos += 1
+            possible_texts.append(sequence[start_pos:end_tag_match.start()])
+        if len(possible_texts) == 0:
+            return ""
+        selected_text = min(possible_texts, key=len) if smallest_distance else max(possible_texts, key=len)
+        return selected_text.strip()
+
+
 class DonutModelZeroShot(BaseModel):
-    def __init__(self) -> None:
-        self.model_name = "naver-clova-ix/donut-base-finetuned-cord-v2"
+    def __init__(self, model_name :str = "naver-clova-ix/donut-base-finetuned-cord-v2", task_prompt="<s_cord-v2>", ordered_dataset_keys: list[str] = []) -> None:
+        self.model_name = model_name
+        self.task_prompt = task_prompt
+        self.ordered_dataset_keys = ordered_dataset_keys
 
     def fit(self, training_data: datasets.arrow_dataset.Dataset, validation_dat: datasets.arrow_dataset.Dataset) -> None:
-        pass
+        self.ordered_dataset_keys = list(training_data.features.keys())
+        self.ordered_dataset_keys.remove('image')
 
-    def predict(self, test_data: Iterable[Image]) -> Iterable[Dict]:
+    def predict(self, test_data: Iterable[Image]) -> Iterable[Dict[str, str]]:
+        if self.ordered_dataset_keys is None or len(self.ordered_dataset_keys) == 0:
+            raise ValueError("The model has not been trained yet. Please call the fit method first.")
+        
         processor = DonutProcessor.from_pretrained(self.model_name)
         model = VisionEncoderDecoderModel.from_pretrained(self.model_name)
 
+        #print("model.config.decoder_start_token_id: " + str(model.config.decoder_start_token_id))
+        #print("model.config.decoder_start_token_id decode: " + processor.tokenizer.decode([model.config.decoder_start_token_id]))
+
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
+        model.eval()
+        model.to(device)
+
         # prepare decoder inputs
-        task_prompt = "<s_cord-v2>"
-        decoder_input_ids = processor.tokenizer(task_prompt, add_special_tokens=False, return_tensors="pt").input_ids
+        decoder_input_ids = processor.tokenizer(self.task_prompt, add_special_tokens=False, return_tensors="pt").input_ids
         decoder_input_ids = decoder_input_ids.to(device)
         for image in test_data:
             pixel_values = processor(image, return_tensors="pt").pixel_values
@@ -40,17 +101,28 @@ class DonutModelZeroShot(BaseModel):
                 pad_token_id=processor.tokenizer.pad_token_id,
                 eos_token_id=processor.tokenizer.eos_token_id,
                 use_cache=True,
+                num_beams=1,
                 bad_words_ids=[[processor.tokenizer.unk_token_id]],
                 return_dict_in_generate=True,
             )
 
             sequence = processor.batch_decode(outputs.sequences)[0]
-            print("Returned sequence:" + str(sequence))
             sequence = sequence.replace(processor.tokenizer.eos_token, "").replace(processor.tokenizer.pad_token, "")
             sequence = re.sub(r"<.*?>", "", sequence, count=1).strip()  # remove first task start token
-            yield processor.token2json(sequence)
+            #predicted_metadata = processor.token2json(sequence)
+            #print(sequence)
 
+            return_dict = {}
+            for dataset_key in self.ordered_dataset_keys:
+                return_dict[dataset_key] = extract_info(sequence, dataset_key, allow_partial_match=False)
+            
+            #print(predicted_metadata)
+            #yield predicted_metadata
+            yield return_dict
+    
 
+    def __str__(self):
+        return "DonutModelZeroShot_" + self.model_name
 
 ### Begin of training code
 
@@ -82,7 +154,10 @@ class DonutDataset(torch.utils.data.Dataset):
         target_sequence = ''
         #iterate over column header and value - it is important that the order is the same thus we use ordered_dataset_keys
         for column in self.ordered_dataset_keys:
-            target_sequence += f"<s_{column}>{sample[column]}</s_{column}>"
+            column_value = sample[column]
+            if column_value is None:
+                column_value = ''
+            target_sequence += f"<s_{column}>{column_value}</s_{column}>"
 
         # remove attributes that are empty
         #for column in prediction_columns:
@@ -124,6 +199,7 @@ class DonutPLModule(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx, dataset_idx=0):
+
         pixel_values, answers = batch['pixel_values'], batch['target_sequence'] 
         batch_size = pixel_values.shape[0]
 
@@ -180,24 +256,12 @@ class DonutPLModule(pl.LightningModule):
     
         return optimizer
 
-from pytorch_lightning.plugins import CheckpointIO  
-class CustomCheckpointIO(CheckpointIO):
-    def save_checkpoint(self, checkpoint, path, storage_options=None):
-        print(type(checkpoint))
-        print(type(storage_options))
-        print(type(path))
-        print("test)")
-
-    def load_checkpoint(self, path, storage_options=None):
-        pass
-
-    def remove_checkpoint(self, path):
-        pass
-
 class DonutModel(BaseModel):
     
     def __init__(self) -> None:
         self.model_name = "naver-clova-ix/donut-base" # "naver-clova-ix/donut-base-finetuned-cord-v2"
+        self.decoder_start_token = "<s_wieder>"
+        self.finetuned_model_name = None
         self.image_size = [1280, 960] # (height, width)
         self.max_length = 768
         self.batch_size = 1 # feel free to increase the batch size if you have a lot of memory
@@ -207,19 +271,20 @@ class DonutModel(BaseModel):
         self.check_val_every_n_epoch = 1
         self.gradient_clip_val = 1.0
         self.best_model_path = None
+
+        self.ordered_dataset_keys = []
     
-    def setup_model(self, processor: DonutProcessor, model: VisionEncoderDecoderModel, ordered_dataset_keys: List[str]) -> None:
+    def setup_model(self, processor: DonutProcessor, model: VisionEncoderDecoderModel) -> None:
 
         # add tokens:
-        list_of_tokens = [f"<s_{element_name}>" for element_name in ordered_dataset_keys] + [f"</s_{element_name}>" for element_name in ordered_dataset_keys]
-        decoder_start_token = "<s_wieder>"
-        list_of_tokens.append(decoder_start_token)
+        list_of_tokens = [f"<s_{element_name}>" for element_name in self.ordered_dataset_keys] + [f"</s_{element_name}>" for element_name in self.ordered_dataset_keys]
+        list_of_tokens.append(self.decoder_start_token)
         newly_added_num = processor.tokenizer.add_tokens(list_of_tokens)
         if newly_added_num > 0:
             model.decoder.resize_token_embeddings(len(processor.tokenizer))
         
         model.config.pad_token_id = processor.tokenizer.pad_token_id
-        model.config.decoder_start_token_id = processor.tokenizer.convert_tokens_to_ids([decoder_start_token])[0]
+        model.config.decoder_start_token_id = processor.tokenizer.convert_tokens_to_ids([self.decoder_start_token])[0]
 
         # we update some settings which differ from pretraining; namely the size of the images + no rotation required
         # source: https://github.com/clovaai/donut/blob/master/config/train_cord.yaml
@@ -241,14 +306,14 @@ class DonutModel(BaseModel):
         processor = DonutProcessor.from_pretrained(self.model_name)
         model = VisionEncoderDecoderModel.from_pretrained(self.model_name, config=config)
 
-        metadata_keys = list(training_data.features.keys())
-        metadata_keys.remove('image')
+        self.ordered_dataset_keys = list(training_data.features.keys())
+        self.ordered_dataset_keys.remove('image')
 
-        self.setup_model(processor, model, metadata_keys)
+        self.setup_model(processor, model)
         
         # create datasets
-        train_dataset = DonutDataset(training_data, metadata_keys, processor, is_train=True, max_length=self.max_length)
-        val_dataset = DonutDataset(validation_dat, metadata_keys, processor, is_train=False, max_length=self.max_length)
+        train_dataset = DonutDataset(training_data, self.ordered_dataset_keys, processor, is_train=True, max_length=self.max_length)
+        val_dataset = DonutDataset(validation_dat, self.ordered_dataset_keys, processor, is_train=False, max_length=self.max_length)
 
         train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
         val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=self.batch_size, shuffle=False, num_workers=4)
@@ -257,11 +322,9 @@ class DonutModel(BaseModel):
         pl_model = DonutPLModule(processor, model,self.donut_learning_rate, self.max_length)
 
         early_stop_callback = pl.callbacks.EarlyStopping(monitor="val_edit_distance", patience=3, verbose=False, mode="min")
-        checkpoint_callback = pl.callbacks.ModelCheckpoint(monitor='val_edit_distance', save_top_k=1)
+        #checkpoint_callback = pl.callbacks.ModelCheckpoint(monitor='val_edit_distance', save_top_k=1)
 
-        custom_checkpoint_io = CustomCheckpointIO()
         trainer = pl.Trainer(
-                plugins=[custom_checkpoint_io],
                 accelerator="gpu",
                 devices=1,
                 max_epochs=self.max_epochs,
@@ -270,21 +333,39 @@ class DonutModel(BaseModel):
                 gradient_clip_val=self.gradient_clip_val,
                 precision=16, # we'll use mixed precision
                 num_sanity_val_steps=0,
-                callbacks=[checkpoint_callback, early_stop_callback],
+                #callbacks=[checkpoint_callback, early_stop_callback],
+                callbacks=[early_stop_callback],
         )
         #https://github.com/Lightning-AI/pytorch-lightning/discussions/10399
 
         trainer.fit(pl_model, train_dataloader, val_dataloader)
 
-        self.best_model_path = checkpoint_callback.best_model_path
-        logger.info(f"Best model path: {self.best_model_path}")
+        mydir = os.path.join("output/donut_model/", datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+        self.finetuned_model_name = mydir
+        os.makedirs(mydir)
+        pl_model.model.save_pretrained(mydir)
+        pl_model.processor.save_pretrained(mydir)
+
+        # TODO: implement a way to save the best model (created by ModelCheckpoint)
+
+        # possible way to save the best model:
+        #donut_checkpoint = torch.load("lightning_logs/version_8/checkpoints/epoch=19-step=1180.ckpt")
+        #modified_state_dict = {k.replace("model.", ""): v for k, v in donut_checkpoint['state_dict'].items()}
+        #model = VisionEncoderDecoderModel.from_pretrained(pretrained_model_name_or_path=None, state_dict=modified_state_dict, config=config, ignore_mismatched_sizes=True)
+        #model.save_pretrained("output/donut_model/")
+        # https://huggingface.co/docs/transformers/main_classes/model   from_pt=True
+
+        #self.best_model_path = checkpoint_callback.best_model_path
+        #logger.info(f"Best model path: {self.best_model_path}")
 
 
-    def predict(self, test_data: Iterable[Image]) -> Iterable[Dict]:
+    def predict(self, test_data: Iterable[Image]) -> Iterable[Dict[str, str]]:
+        if self.finetuned_model_name is None or len(self.finetuned_model_name) == 0:
+            raise ValueError("The model has not been trained yet. Please call the fit method first.")
         
-
-        pass
-
+        return DonutModelZeroShot(model_name=self.finetuned_model_name, 
+                                  task_prompt=self.decoder_start_token, 
+                                  ordered_dataset_keys=self.ordered_dataset_keys).predict(test_data)
     
     def __str__(self):
         return "DonutModel"

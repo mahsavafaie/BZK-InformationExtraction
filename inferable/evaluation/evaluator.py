@@ -29,6 +29,9 @@ def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_fold
         test_data = dataset.get_test_data()
         for model in models:
             model_name = str(model)
+            #process model name such that it can be used a file name
+            model_name = model_name.replace("/", "_")
+
             # Train the model
             logger.info(f"Run training of model {model_name} on {dataset_name}")
             start_time = time.time()
@@ -87,6 +90,9 @@ def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_fold
                             count_of_non_empty_comparisons['all'] += 1
                             non_empty_comparisons_of_row += 1
 
+                        #print(f"ground_truth_value: {ground_truth_value}")
+                        #print(f"predicted_value: {predicted_value}")
+
                         computed_edit_distance = edit_distance(predicted_value, ground_truth_value)
                         maximum_length = max(len(predicted_value), len(ground_truth_value))
                         computed_normalized_edit_distance = computed_edit_distance / maximum_length if maximum_length > 0 else 0
@@ -126,13 +132,13 @@ def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_fold
                 # just in case someone asks why the average of the averages is not the same as the average of all values
                 # https://math.stackexchange.com/questions/95909/why-is-an-average-of-an-average-usually-incorrect
                 avg_row = ['average_non_empty_comparisons', '', '', 
-                           format_numbers(edit_distance_dict['all'] / count_of_non_empty_comparisons['all']), 
-                           format_numbers(normalized_edit_distance_dict['all'] / count_of_non_empty_comparisons['all'])
+                           format_numbers(edit_distance_dict['all'] / count_of_non_empty_comparisons['all'] if count_of_non_empty_comparisons['all'] > 0 else 0), 
+                           format_numbers(normalized_edit_distance_dict['all'] / count_of_non_empty_comparisons['all'] if count_of_non_empty_comparisons['all'] > 0 else 0)
                            ]
                 for prediction_key in predicted_keys:
                     avg_row.extend(['', '', 
-                                    format_numbers(edit_distance_dict[prediction_key] / count_of_non_empty_comparisons[prediction_key]), 
-                                    format_numbers(normalized_edit_distance_dict[prediction_key] / count_of_non_empty_comparisons[prediction_key])])
+                                    format_numbers(edit_distance_dict[prediction_key] / count_of_non_empty_comparisons[prediction_key] if count_of_non_empty_comparisons[prediction_key] > 0 else 0), 
+                                    format_numbers(normalized_edit_distance_dict[prediction_key] / count_of_non_empty_comparisons[prediction_key] if count_of_non_empty_comparisons[prediction_key] > 0 else 0)])
                 avg_row.extend([training_time, prediction_time])
                 writer.writerow(avg_row)
 

@@ -2,6 +2,7 @@ import importlib
 from typing import List
 
 models_map = {
+    "Dummy": ("inferable.models.dummy_model", "DummyModel", {}),
     "Donut": ("inferable.models.donut_model", "DonutModel", {}),
     "DonutModelZeroShot": ("inferable.models.donut_model", "DonutModelZeroShot", {}),
 }

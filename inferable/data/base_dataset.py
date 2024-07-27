@@ -1,7 +1,9 @@
 from datasets.arrow_dataset import Dataset
+from abc import ABC, abstractmethod
 
-class BaseDataset:
+class BaseDataset(ABC):
 
+    @abstractmethod
     def get_training_data(self) -> Dataset:
         """Returns the training data.
         Returns
@@ -11,6 +13,7 @@ class BaseDataset:
         """
         pass
 
+    @abstractmethod
     def get_validation_data(self) -> Dataset:
         """Returns the validation data.
         Returns
@@ -19,7 +22,8 @@ class BaseDataset:
             Images and metadata for validation
         """
         pass
-
+    
+    @abstractmethod
     def get_test_data(self) -> Dataset:
         """Returns the test data.
         Returns

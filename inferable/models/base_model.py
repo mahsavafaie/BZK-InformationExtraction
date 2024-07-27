@@ -1,9 +1,11 @@
 from typing import Dict, Iterable
 from datasets.arrow_dataset import Dataset
+from abc import ABC, abstractmethod
 from PIL.Image import Image
 
-class BaseModel:
+class BaseModel(ABC):
 
+    @abstractmethod
     def fit(self, training_data: Dataset, validation_dat: Dataset) -> None:
         """Trains the model on the given training and validation data.
         Parameters
@@ -15,8 +17,9 @@ class BaseModel:
         Returns
         ----------"""
         pass
-
-    def predict(self, test_data: Iterable[Image]) -> Iterable[Dict]:
+    
+    @abstractmethod
+    def predict(self, test_data: Iterable[Image]) -> Iterable[Dict[str, str]]:
         """Predicts the metadata for the given test data.
         Parameters
         ----------

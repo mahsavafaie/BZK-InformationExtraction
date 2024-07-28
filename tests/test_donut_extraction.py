@@ -1,4 +1,4 @@
-from inferable.models.donut_model import extract_info
+from inferable.models.utils import extract_info
 
 def test_extraction():
     text = "<s_BZKNr>bla<s_BZKNr>8307/IV/311</s_BZKNr>blub</s_BZKNr>"

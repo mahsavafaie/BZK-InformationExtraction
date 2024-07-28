@@ -5,6 +5,8 @@ models_map = {
     "Dummy": ("inferable.models.dummy_model", "DummyModel", {}),
     "Donut": ("inferable.models.donut_model", "DonutModel", {}),
     "DonutModelZeroShot": ("inferable.models.donut_model", "DonutModelZeroShot", {}),
+    "PaliGemma": ("inferable.models.paligemma_model", "PaliGemmaModel", {}),
+    "PaliGemmaZeroShot": ("inferable.models.paligemma_model", "PaliGemmaZeroShot", {}),
 }
 
 

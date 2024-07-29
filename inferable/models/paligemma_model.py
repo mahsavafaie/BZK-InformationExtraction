@@ -108,18 +108,18 @@ class PalliGemmaPLModule(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx, dataset_idx=0):
-        print("validation step start")
+        #print("validation step start")
         input_ids, attention_mask, pixel_values, answers = batch
 
-        print("validation step generate")
+        #print("validation step generate")
         # autoregressively generate token IDs
         generated_ids = self.model.generate(input_ids=input_ids, attention_mask=attention_mask,
                                        pixel_values=pixel_values, max_new_tokens=self.max_length)
-        print("validation step generate end")
+        #print("validation step generate end")
         # turn them back into text, chopping of the prompt
         # important: we don't skip special tokens here, because we want to see them in the output
         predictions = self.processor.batch_decode(generated_ids[:, input_ids.size(1):], skip_special_tokens=True)
-        print("validation step write")
+        #print("validation step write")
         scores = []
         with open('output/paligemma_validation', 'a') as f:
             for pred, answer in zip(predictions, answers):
@@ -139,7 +139,7 @@ class PalliGemmaPLModule(pl.LightningModule):
             f.write("=========================================================\n")
 
         self.log("val_edit_distance", np.mean(scores))
-        print("validation step end")
+        #print("validation step end")
         return scores
 
 
@@ -164,9 +164,9 @@ class PaliGemmaModel(BaseModel):
         #training related
         self.learning_rate = 1e-4
         self.batch_size = 2
-        self.max_epochs = 30
+        self.max_epochs = 25 # initial was 30
         self.accumulate_grad_batches = 8
-        self.check_val_every_n_epoch = 1
+        self.check_val_every_n_epoch = 30  # TODO: change back inital value is 1 to check every epoch (but this is too slow)
         self.gradient_clip_val = 1.0
         self.best_model_path = None
 

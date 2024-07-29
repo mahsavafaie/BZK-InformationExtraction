@@ -214,17 +214,17 @@ class DonutPLModule(pl.LightningModule):
 
 class DonutModel(BaseModel):
     
-    def __init__(self) -> None:
-        self.model_name = "naver-clova-ix/donut-base" # "naver-clova-ix/donut-base-finetuned-cord-v2"
+    def __init__(self, model_name = "naver-clova-ix/donut-base") -> None:
+        self.model_name = model_name # "naver-clova-ix/donut-base" # "naver-clova-ix/donut-base-finetuned-cord-v2"
         self.decoder_start_token = "<s_wieder>"
         self.finetuned_model_name = None
         self.image_size = [1280, 960] # (height, width)
         self.max_length = 768
         self.batch_size = 1 # feel free to increase the batch size if you have a lot of memory
         self.donut_learning_rate = 3e-5
-        self.max_epochs = 30
+        self.max_epochs = 25
         self.val_check_interval = 1.0 #0.2
-        self.check_val_every_n_epoch = 1
+        self.check_val_every_n_epoch = 30 #TODO: change back to 1 
         self.gradient_clip_val = 1.0
         #self.best_model_path = None
 

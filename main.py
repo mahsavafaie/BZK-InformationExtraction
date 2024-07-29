@@ -67,10 +67,12 @@ def cli_evaluate() -> None:
     #cmd_arguments = [
         #"-d", "bzk_small", "-m", "class=PaliGemma", "-g", "1"
         #"-d", "bzk_small", "-m", "class=Dummy"
+        #"-d", "bzk_small", "-m", "class=Donut,model_name=naver-clova-ix/donut-base-finetuned-cord-v2"
         #"-d", "bzk_small", "-m", "class=Donut"
         #"-d", "bzk_small", "-m", "class=PaliGemmaZeroShot"
         #"-d", "bzk_small", "-m", "class=DonutModelZeroShot,model_name=output/donut_model/2024-07-27_08-40-01,task_prompt=<s_wieder>" 
     #]
+
 
     parser = setup_parser()
     args = parse_eval_args(parser, cmd_arguments)

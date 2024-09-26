@@ -18,9 +18,10 @@ def get_filename(image):
     return ""
 
 def format_numbers(number):
-    return str(number).replace('.', ',') # f'{number:.15f}'.replace('.', ',') # .5
+    return str(number)
+    #return str(number).replace('.', ',') # f'{number:.15f}'.replace('.', ',') # .5
 
-   
+
 
 def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_folder : str):
     for dataset in datasets:
@@ -58,7 +59,7 @@ def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_fold
 
                 predicted_keys = list(test_data.features.keys())
                 predicted_keys.remove("image")
-                
+
                 header_row = ['image', 'avg_edit_distance', 'avg_normalized_edit_distance', 'avg_edit_distance_non_empty', 'avg_normalized_edit_distance_non_empty']
                 for prediction_key in predicted_keys:
                     header_row.extend([f'{prediction_key}_ground_truth', f'{prediction_key}_predicted', f'{prediction_key}_edit_dist', f'{prediction_key}_norm_edit_dist'])
@@ -115,34 +116,34 @@ def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_fold
 
                     writer.writerow(row)
                     #xlsxfile.write_row(i + 1, 0,  row)
-                
+
                 test_length = len(test_data)
-                avg_row = ['average_all_images', 
-                           format_numbers(edit_distance_dict['all'] / (test_length*len(predicted_keys))), 
-                           format_numbers(normalized_edit_distance_dict['all'] / (test_length*len(predicted_keys))), 
+                avg_row = ['average_all_images',
+                           format_numbers(edit_distance_dict['all'] / (test_length*len(predicted_keys))),
+                           format_numbers(normalized_edit_distance_dict['all'] / (test_length*len(predicted_keys))),
                            '', ''
                            ]
                 for prediction_key in predicted_keys:
                     avg_row.extend(['', '',
-                                    format_numbers(edit_distance_dict[prediction_key] / test_length), 
+                                    format_numbers(edit_distance_dict[prediction_key] / test_length),
                                     format_numbers(normalized_edit_distance_dict[prediction_key] / test_length)])
                 avg_row.extend([training_time, prediction_time])
                 writer.writerow(avg_row)
-                
+
                 # just in case someone asks why the average of the averages is not the same as the average of all values
                 # https://math.stackexchange.com/questions/95909/why-is-an-average-of-an-average-usually-incorrect
-                avg_row = ['average_non_empty_comparisons', '', '', 
-                           format_numbers(edit_distance_dict['all'] / count_of_non_empty_comparisons['all'] if count_of_non_empty_comparisons['all'] > 0 else 0), 
+                avg_row = ['average_non_empty_comparisons', '', '',
+                           format_numbers(edit_distance_dict['all'] / count_of_non_empty_comparisons['all'] if count_of_non_empty_comparisons['all'] > 0 else 0),
                            format_numbers(normalized_edit_distance_dict['all'] / count_of_non_empty_comparisons['all'] if count_of_non_empty_comparisons['all'] > 0 else 0)
                            ]
                 for prediction_key in predicted_keys:
-                    avg_row.extend(['', '', 
-                                    format_numbers(edit_distance_dict[prediction_key] / count_of_non_empty_comparisons[prediction_key] if count_of_non_empty_comparisons[prediction_key] > 0 else 0), 
+                    avg_row.extend(['', '',
+                                    format_numbers(edit_distance_dict[prediction_key] / count_of_non_empty_comparisons[prediction_key] if count_of_non_empty_comparisons[prediction_key] > 0 else 0),
                                     format_numbers(normalized_edit_distance_dict[prediction_key] / count_of_non_empty_comparisons[prediction_key] if count_of_non_empty_comparisons[prediction_key] > 0 else 0)])
                 avg_row.extend([training_time, prediction_time])
                 writer.writerow(avg_row)
 
-                
+
                 # TODO: add images to the xlsx file
                 # adding images to comments is not supported  https://www.youtube.com/watch?v=pPekR2rzwWI
                 # https://github.com/jmcnamara/XlsxWriter/issues/823

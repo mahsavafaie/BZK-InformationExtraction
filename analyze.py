@@ -4,7 +4,9 @@ import shutil
 import os
 import csv
 
-df = pd.read_excel('transcription_BZK.xlsx')
+#df = pd.read_excel('transcription_BZK.xlsx')
+df = pd.read_excel('normalised_BZK.xlsx', sheet_name = "final")
+
 df = df.loc[:,~df.columns.str.startswith('Unnamed:')]
 df = df.fillna('')
 df = df.map(lambda x: x.strip() if isinstance(x, str) else x)
@@ -34,10 +36,11 @@ dict_replacements = {
 #print(df['Layout class'].replace(dict_replacements).value_counts())
 df['Layout class'] = df['Layout class'].replace(dict_replacements)
 
-selected_columns = ['file_name', 'CompensationOffice1', 'BZKNr', 
+selected_columns = ['file_name', 'CompensationOffice1', 'BZKNr',
                     'Layout class', # just for stratification
-                    'ApplicantFirstName', 'ApplicantLastName', 'ApplicantAltFirstName', 'ApplicantBirthName', 'ApplicantAltLastName', 'ApplicantBirthDate', 'ApplicantBirthPlace', 'ApplicantCurrentAddress',
-                    'VictimFirstName',    'VictimLastName',    'VictimAltFirstName',    'VictimBirthName',    'VictimAltLastName',    'VictimBirthDate',    'VictimBirthPlace',    'VictimDeathDate', 'VictimDeathPlace']
+                    'ApplicantFirstName', 'ApplicantLastName', 'ApplicantAltFirstName', 'ApplicantBirthName', 'ApplicantAltLastName', 'ApplicantBirthDate', 'ApplicantBirthDateNormalised', 'ApplicantBirthPlace', 'ApplicantCurrentAddress', 'ApplicantCurrentAddressCity', 'MaritalStatus',
+                    'VictimFirstName',    'VictimLastName',    'VictimAltFirstName',    'VictimBirthName',    'VictimAltLastName',    'VictimBirthDate',  'VictimBirthDateNormalised', 'VictimLastAddress', 'VictimLastAddressCity', 'VictimBirthPlace', 'VictimDeathDate', 'VictimDeathDateNormalised',
+                    'VictimDeathPlace', 'VictimDeathStatus']
 df_selected = df[selected_columns]
 
 train, test = train_test_split(df_selected, test_size=0.20, random_state=42, stratify=df_selected['Layout class'])

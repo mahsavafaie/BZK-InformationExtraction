@@ -18,7 +18,7 @@ def get_filename(image):
     return ""
 
 def format_numbers(number):
-    return str(number).replace('.', ',') # f'{number:.15f}'.replace('.', ',') # .5
+    return str(number)#.replace('.', ',') # f'{number:.15f}'.replace('.', ',') # .5
 
    
 

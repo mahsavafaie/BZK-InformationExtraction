@@ -7,6 +7,8 @@ models_map = {
     "DonutModelZeroShot": ("inferable.models.donut_model", "DonutModelZeroShot", {}),
     "PaliGemma": ("inferable.models.paligemma_model", "PaliGemmaModel", {}),
     "PaliGemmaZeroShot": ("inferable.models.paligemma_model", "PaliGemmaZeroShot", {}),
+    "Donutdocvqa": ("inferable.models.DonutDocvqa_model", "DonutModel", {}),
+    "InternvlModel": ("inferable.models.Internvl_model", "InternvlModel" , {})
 }
 
 

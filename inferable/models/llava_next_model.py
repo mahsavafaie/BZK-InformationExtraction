@@ -1,5 +1,5 @@
 from inferable.models.base_model import BaseModel
-from inferable.models.utils import extract_info
+from inferable.models.utils import extract_xml_info
 from inferable.models.pytorch_utils import PyTorchDatasetWrapper
 from typing import Dict, Iterable, Tuple, List
 import datasets
@@ -58,7 +58,7 @@ class LLaVaNextZeroShot(BaseModel):
 
             return_dict = {}
             for dataset_key in self.ordered_dataset_keys:
-                return_dict[dataset_key] = extract_info(generated_text, dataset_key, allow_partial_match=False)
+                return_dict[dataset_key] = extract_xml_info(generated_text, dataset_key, allow_partial_match=False)
             
             yield return_dict
 

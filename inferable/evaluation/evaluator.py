@@ -27,6 +27,14 @@ def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_fold
         dataset_name = dataset.__class__.__name__
         training_data, validation_data = dataset.get_training_data(), dataset.get_validation_data()
         test_data = dataset.get_test_data()
+
+        training_data = training_data.remove_columns("Layout class")
+        validation_data = validation_data.remove_columns("Layout class")
+
+        keys_to_be_predicted = list(test_data.features.keys())
+        keys_to_be_predicted.remove("image")
+        keys_to_be_predicted.remove("Layout class")
+
         for model in models:
             model_name = str(model)
             #process model name such that it can be used a file name
@@ -40,14 +48,6 @@ def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_fold
             training_time_hours_minute_seconds = datetime.timedelta(seconds=training_time)
             logger.info(f"Finished training of model {model_name} on {dataset_name} in {training_time_hours_minute_seconds} (HH:MM:SS).")
 
-            # Predict the metadata
-            logger.info(f"Run prediction of model {model_name} on {dataset_name}")
-            start_time = time.time()
-            predicted_metadata = list(model.predict(test_data['image']))
-            prediction_time = time.time() - start_time
-            prediction_time_hours_minute_seconds = datetime.timedelta(seconds=prediction_time)
-            logger.info(f"Finished training of model {model_name} on {dataset_name} in {prediction_time_hours_minute_seconds} (HH:MM:SS).")
-
             # Evaluate the predictions
             logger.info(f"Run evaluation of model {model_name} on {dataset_name}")
             start_time = time.time()
@@ -55,28 +55,34 @@ def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_fold
             file_path = str(os.path.join(output_folder, f"evaluation_results-{model_name}-{dataset_name}"))
             with open(file_path + ".csv", 'w', newline='', encoding='utf-8') as csvfile: #,  xlsxwriter.Workbook(file_path + ".xlsx") as xlsxfile:
                 writer = csv.writer(csvfile)
-
-                predicted_keys = list(test_data.features.keys())
-                predicted_keys.remove("image")
                 
-                header_row = ['image', 'avg_edit_distance', 'avg_normalized_edit_distance', 'avg_edit_distance_non_empty', 'avg_normalized_edit_distance_non_empty']
-                for prediction_key in predicted_keys:
+                header_row = ['image', 'layout_class', 'avg_edit_distance', 'avg_normalized_edit_distance', 'avg_edit_distance_non_empty', 'avg_normalized_edit_distance_non_empty']
+                for prediction_key in keys_to_be_predicted:
                     header_row.extend([f'{prediction_key}_ground_truth', f'{prediction_key}_predicted', f'{prediction_key}_edit_dist', f'{prediction_key}_norm_edit_dist'])
-                header_row.extend(['training_time_seconds', 'prediction_time_seconds'])
+                header_row.extend(['training_time_seconds', 'prediction_time_seconds', 'non_evaluated_attributes'])
                 writer.writerow(header_row)
                 #xlsxfile.write_row(0, 0,  header_row)
 
                 edit_distance_dict = defaultdict(int)
                 normalized_edit_distance_dict = defaultdict(float)
                 count_of_non_empty_comparisons = defaultdict(int)
-                for i, test_example in enumerate(test_data):
-                    row = [get_filename(test_example['image'])]
-                    predicted = predicted_metadata[i]
+
+                prediction_time_sum = 0
+                prediction_start_time = time.time()
+                for i, predicted in enumerate(model.predict(test_data['image'])):
+                    prediction_end_time = time.time()
+                    prediction_time = prediction_end_time - prediction_start_time
+                    prediction_time_sum += prediction_time
+
+                    ground_truth = test_data[i]
+                    row = [get_filename(ground_truth['image']), ground_truth['Layout class']]
+                    print(ground_truth['image'])
+                    print(dir(ground_truth['image']))
                     avg_edit_distance = 0
                     avg_normalized_edit_distance = 0
                     non_empty_comparisons_of_row = 0
-                    for prediction_key in predicted_keys:
-                        ground_truth_value = test_example[prediction_key]
+                    for prediction_key in keys_to_be_predicted:
+                        ground_truth_value = ground_truth[prediction_key]
                         predicted_value = predicted.get(prediction_key) # assign None if key does not exist
 
                         # TODO: check if still needed
@@ -107,26 +113,34 @@ def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_fold
                         normalized_edit_distance_dict['all'] += computed_normalized_edit_distance
 
                         row.extend([ground_truth_value, predicted_value, computed_edit_distance, format_numbers(computed_normalized_edit_distance)])
+                    
+                    # create dict of all not evaluated attributes (predicted dict - keys_to_be_predicted)
+                    not_evaluated_keys = set(predicted.keys()) - set(keys_to_be_predicted)
+                    not_evaluated_dict = {not_evaluated_key: predicted[not_evaluated_key] for not_evaluated_key in not_evaluated_keys}
 
-                    row.insert(1, format_numbers(avg_edit_distance / len(predicted_keys)))
-                    row.insert(2, format_numbers(avg_normalized_edit_distance / len(predicted_keys)))
-                    row.insert(3, format_numbers(avg_edit_distance / non_empty_comparisons_of_row))
-                    row.insert(4, format_numbers(avg_normalized_edit_distance / non_empty_comparisons_of_row))
+                    row.extend(["", prediction_time, str(not_evaluated_dict)])
+                    row.insert(2, format_numbers(avg_edit_distance / len(keys_to_be_predicted)))
+                    row.insert(3, format_numbers(avg_normalized_edit_distance / len(keys_to_be_predicted)))
+                    row.insert(4, format_numbers(avg_edit_distance / non_empty_comparisons_of_row))
+                    row.insert(5, format_numbers(avg_normalized_edit_distance / non_empty_comparisons_of_row))
 
                     writer.writerow(row)
                     #xlsxfile.write_row(i + 1, 0,  row)
+                    csvfile.flush() # write to disk directly
+
+                    prediction_start_time = time.time()
                 
                 test_length = len(test_data)
                 avg_row = ['average_all_images', 
-                           format_numbers(edit_distance_dict['all'] / (test_length*len(predicted_keys))), 
-                           format_numbers(normalized_edit_distance_dict['all'] / (test_length*len(predicted_keys))), 
+                           format_numbers(edit_distance_dict['all'] / (test_length*len(keys_to_be_predicted))), 
+                           format_numbers(normalized_edit_distance_dict['all'] / (test_length*len(keys_to_be_predicted))), 
                            '', ''
                            ]
-                for prediction_key in predicted_keys:
+                for prediction_key in keys_to_be_predicted:
                     avg_row.extend(['', '',
                                     format_numbers(edit_distance_dict[prediction_key] / test_length), 
                                     format_numbers(normalized_edit_distance_dict[prediction_key] / test_length)])
-                avg_row.extend([training_time, prediction_time])
+                avg_row.extend([training_time, prediction_time_sum])
                 writer.writerow(avg_row)
                 
                 # just in case someone asks why the average of the averages is not the same as the average of all values
@@ -135,12 +149,13 @@ def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_fold
                            format_numbers(edit_distance_dict['all'] / count_of_non_empty_comparisons['all'] if count_of_non_empty_comparisons['all'] > 0 else 0), 
                            format_numbers(normalized_edit_distance_dict['all'] / count_of_non_empty_comparisons['all'] if count_of_non_empty_comparisons['all'] > 0 else 0)
                            ]
-                for prediction_key in predicted_keys:
+                for prediction_key in keys_to_be_predicted:
                     avg_row.extend(['', '', 
                                     format_numbers(edit_distance_dict[prediction_key] / count_of_non_empty_comparisons[prediction_key] if count_of_non_empty_comparisons[prediction_key] > 0 else 0), 
                                     format_numbers(normalized_edit_distance_dict[prediction_key] / count_of_non_empty_comparisons[prediction_key] if count_of_non_empty_comparisons[prediction_key] > 0 else 0)])
-                avg_row.extend([training_time, prediction_time])
+                avg_row.extend([training_time, prediction_time_sum])
                 writer.writerow(avg_row)
+                csvfile.flush() # write to disk directly
 
                 
                 # TODO: add images to the xlsx file

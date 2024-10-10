@@ -1,5 +1,5 @@
 from inferable.models.base_model import BaseModel
-from inferable.models.utils import extract_info
+from inferable.models.utils import extract_xml_info
 from typing import Dict, Iterable, Tuple, List
 import datasets
 from PIL.Image import Image
@@ -70,7 +70,7 @@ class DonutModelZeroShot(BaseModel):
 
             return_dict = {}
             for dataset_key in self.ordered_dataset_keys:
-                return_dict[dataset_key] = extract_info(sequence, dataset_key, allow_partial_match=False)
+                return_dict[dataset_key] = extract_xml_info(sequence, dataset_key, allow_partial_match=False)
             
             #print(predicted_metadata)
             #yield predicted_metadata

@@ -12,6 +12,7 @@ class DummyModel(BaseModel):
     def fit(self, training_data: datasets.arrow_dataset.Dataset, validation_dat: datasets.arrow_dataset.Dataset) -> None:
         self.predict_keys = list(training_data.features.keys())
         self.predict_keys.remove('image')
+        self.predict_keys.append('text_produced')
 
 
     def predict(self, test_data: Iterable[Image]) -> Iterable[Dict[str, str]]:

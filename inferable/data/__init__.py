@@ -2,8 +2,13 @@ import importlib
 from typing import List
 
 dataset_map = {
-    "bzk": ("inferable.data.bzk_dataset", "BZKDataset"),
-    "bzk_small": ("inferable.data.bzk_dataset", "BZKDatasetSmall"),
+    "bzk_local": ("inferable.data.bzk_dataset", "BZKDataset"),
+    "bzk_small_local": ("inferable.data.bzk_dataset", "BZKDatasetSmall"),
+
+    "bzk_norm": ("inferable.data.bzk_dataset", "BZKDatasetNormalizedHF"),
+    "bzk_raw": ("inferable.data.bzk_dataset", "BZKDatasetRawHF"),
+    "bzk_small_norm": ("inferable.data.bzk_dataset", "BZKDatasetSmallNormalizedHF"),
+    "bzk_small_raw": ("inferable.data.bzk_dataset", "BZKDatasetSmallRawHF"),
 }
 
 def get_datasets(dataset_texts: List[str]) -> List:

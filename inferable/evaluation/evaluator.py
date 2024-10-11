@@ -76,8 +76,6 @@ def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_fold
 
                     ground_truth = test_data[i]
                     row = [get_filename(ground_truth['image']), ground_truth['Layout class']]
-                    print(ground_truth['image'])
-                    print(dir(ground_truth['image']))
                     avg_edit_distance = 0
                     avg_normalized_edit_distance = 0
                     non_empty_comparisons_of_row = 0

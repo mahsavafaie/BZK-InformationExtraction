@@ -135,8 +135,8 @@ def test_json_where_values_contains_comma():
     "Applicant Birthdate": null}"""
     
     gt = {
-        "Applicant First Name": "Max, Muster:mann, Foo,",
-        "Applicant Last Name": ",Mustermann,",
+        "Applicant First Name": "Max, Muster:mann, Foo",
+        "Applicant Last Name": "Mustermann",
         "Applicant Birthdate": None,
     }
 

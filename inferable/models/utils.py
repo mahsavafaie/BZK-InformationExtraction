@@ -3,6 +3,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+_RE_COMBINE_WHITESPACE = re.compile(r"\s+")
+_POSSIBLE_NULL_VALUES = set(["null", "none", "nil", "nan"])
+
 def extract_xml_info(sequence, tag_name, smallest_distance: bool = True, remove_tags_inside: bool = True, allow_partial_match: bool = False) -> str:
     """
     Extracts the information between the tags <s_tag_name> and </s_tag_name> from the sequence.
@@ -70,6 +73,26 @@ def _split_only_if_not_inside_quotes(sequence: str, split_char: str) -> list:
         splits.append(buffer)
     return splits
 
+
+
+
+def _process_keys_and_values(text):
+    """
+    Processes the keys and values of a json like structure.
+    """
+    
+    processed_text = text.strip("\"' ,;")
+
+    processed_text = processed_text.replace('"', '')
+    processed_text = _RE_COMBINE_WHITESPACE.sub(" ", processed_text).strip()
+
+    if processed_text.lower() in _POSSIBLE_NULL_VALUES or processed_text == "":
+        processed_text = None
+    return processed_text
+
+
+
+
 def extract_json_info(sequence) -> str:
     """
     Extracts the information from a json like structure.
@@ -91,20 +114,20 @@ def extract_json_info(sequence) -> str:
     for info in json_info:
         attribute_value_pairs.extend(_split_only_if_not_inside_quotes(info, ","))
 
-    print(attribute_value_pairs)
     return_dict = {}
     for pair in attribute_value_pairs:
         one_attribute_value_pair = _split_only_if_not_inside_quotes(pair, ":")
         if len(one_attribute_value_pair) < 2:
             logger.warning(f"Could not split {pair} into key value pair")
             continue
-        key = one_attribute_value_pair[0].strip()
-        value = one_attribute_value_pair[1].strip()
 
-        key = key.strip("\"' ")
-        value = value.strip("\"' ")
 
-        print(f"Key: {key}, Value: {value}")
+        key = _process_keys_and_values(one_attribute_value_pair[0])
+        value = _process_keys_and_values(one_attribute_value_pair[1].strip())
+        if key is None:
+            logger.warning(f"Key is None for {pair}")
+            continue
+        #print(f"Key: {key}, Value: {value}")
 
         return_dict[key] = value
     return return_dict

@@ -129,13 +129,13 @@ def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_fold
                     prediction_start_time = time.time()
                 
                 test_length = len(test_data)
-                avg_row = ['average_all_images', 
+                avg_row = ['average_all_images', '', # second column is empty because there is no layout class for the average
                            format_numbers(edit_distance_dict['all'] / (test_length*len(keys_to_be_predicted))), 
                            format_numbers(normalized_edit_distance_dict['all'] / (test_length*len(keys_to_be_predicted))), 
                            '', ''
                            ]
                 for prediction_key in keys_to_be_predicted:
-                    avg_row.extend(['', '',
+                    avg_row.extend(['', '', 
                                     format_numbers(edit_distance_dict[prediction_key] / test_length), 
                                     format_numbers(normalized_edit_distance_dict[prediction_key] / test_length)])
                 avg_row.extend([training_time, prediction_time_sum])
@@ -143,7 +143,7 @@ def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_fold
                 
                 # just in case someone asks why the average of the averages is not the same as the average of all values
                 # https://math.stackexchange.com/questions/95909/why-is-an-average-of-an-average-usually-incorrect
-                avg_row = ['average_non_empty_comparisons', '', '', 
+                avg_row = ['average_non_empty_comparisons', '', '', '',
                            format_numbers(edit_distance_dict['all'] / count_of_non_empty_comparisons['all'] if count_of_non_empty_comparisons['all'] > 0 else 0), 
                            format_numbers(normalized_edit_distance_dict['all'] / count_of_non_empty_comparisons['all'] if count_of_non_empty_comparisons['all'] > 0 else 0)
                            ]

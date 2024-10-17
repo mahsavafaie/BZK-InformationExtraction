@@ -110,8 +110,8 @@ class InternvlModel(BaseModel):
             device_map = {}
             world_size = torch.cuda.device_count()
             num_layers = {
-                'InternVL2-1B': 24, 'InternVL2-2B': 24, 'InternVL2-4B': 32, 'InternVL2-8B': 32,
-                'InternVL2-26B': 48, 'InternVL2-40B': 60, 'InternVL2-Llama3-76B': 80}[model_name]
+                'OpenGVLab/InternVL2-1B': 24, 'OpenGVLab/InternVL2-2B': 24, 'OpenGVLab/InternVL2-4B': 32, 'OpenGVLab/InternVL2-8B': 32,
+                'OpenGVLab/InternVL2-26B': 48, 'OpenGVLab/InternVL2-40B': 60, 'OpenGVLab/InternVL2-Llama3-76B': 80}[model_name]
             # Since the first GPU will be used for ViT, treat it as half a GPU.
             num_layers_per_gpu = math.ceil(num_layers / (world_size - 0.5))
             num_layers_per_gpu = [num_layers_per_gpu] * world_size

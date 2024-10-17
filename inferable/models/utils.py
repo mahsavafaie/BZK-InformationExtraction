@@ -91,7 +91,10 @@ def _process_keys_and_values(text):
     return processed_text
 
 
-
+def get_filename(image):
+    if hasattr(image, "filename") and image.filename != "":
+        return os.path.basename(image.filename)
+    return ""
 
 def extract_json_info(sequence) -> str:
     """

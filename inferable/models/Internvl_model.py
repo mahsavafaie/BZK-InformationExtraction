@@ -13,10 +13,15 @@ from PIL import Image
 import os
 from torchvision.transforms.functional import InterpolationMode
 from transformers import AutoTokenizer, AutoModel
+from inferable.models.utils import extract_json_info, get_filename
 
 logger = logging.getLogger(__name__)
 
 class InternvlModel(BaseModel):
+    """
+    The InternvlModel is a model that uses InternVL2 from OpenGVLab to extract information from images.
+    https://huggingface.co/OpenGVLab/InternVL2-Llama3-76B
+    """
 
     def __init__(self, model_name :str = "OpenGVLab/InternVL2-Llama3-76B") -> None:
         self.model_name = model_name
@@ -124,18 +129,22 @@ class InternvlModel(BaseModel):
             device_map['language_model.model.norm'] = 0
             device_map['language_model.lm_head'] = 0
             device_map[f'language_model.model.layers.{num_layers - 1}'] = 0
-
+        
             return device_map
 
 
-        device_map = split_model('InternVL2-Llama3-76B')
+        device_map = split_model(self.model_name) # 'auto'#
+
         model = AutoModel.from_pretrained(
             self.model_name,
             torch_dtype=torch.bfloat16,
             #load_in_8bit=True,  #in 4-bit provides irrelevant results
             low_cpu_mem_usage=True,
+            use_flash_attn=True,
             trust_remote_code=True,
             device_map=device_map).eval()
+        #print(model.hf_device_map)
+
         tokenizer = AutoTokenizer.from_pretrained(self.model_name, trust_remote_code=True, use_fast=False)
         #load the model before the loop
 
@@ -145,20 +154,15 @@ class InternvlModel(BaseModel):
             pixel_values = load_image(image, max_num=12).to(torch.bfloat16).cuda()
             generation_config = dict(max_new_tokens=1024, do_sample=False)
 
-            def get_filename(image):
-                if hasattr(image, "filename") and image.filename != "":
-                    return os.path.basename(image.filename)
-                return ""
-
             question = '''<image>\nPlease provide the following information as you can see on the image as a Python dictionary. If the information is not
             given, provide 'null' as the value for the key. BZK number is the code that from the top right of the image. : Compensation Office, BZK number, Applicant First Name,
             Applicant Last Name, Applicant Birth Name, Applicant Birthdate, Applicant Birth place, Applicant Address, Applicant's Marital Status, Victim First Name, Victim Last Name, Victim Birthdate,
             Victim Birth place, , Victim Death Date, Victim Death Place, Heirs'''
             response, history = model.chat(tokenizer, pixel_values, question, generation_config, history=None, return_history=True)
-            print(f'file name: {get_filename(image)}\nAssistant: {response}')
-            return_dict = {}
-            #return_dict['Applicant First Name'] = response[:15]
-            #return_dict['Applicant Last Name'] = response["Applicant Last Name"]
+            
+            return_dict = extract_json_info(response)
+            return_dict['filename'] = get_filename(image)
+            return_dict['full_response'] = response
 
             yield return_dict
 

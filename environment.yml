@@ -7,3 +7,4 @@ dependencies:
   - pip
   - pytorch::pytorch=2.2.1
   - pytorch::pytorch-cuda=12.1
+  - pytorch::torchvision=0.17.1

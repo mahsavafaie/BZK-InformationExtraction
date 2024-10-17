@@ -29,6 +29,7 @@ class PaliGemmaZeroShot(BaseModel):
         self.task_prompt = task_prompt
         self.ordered_dataset_keys = ordered_dataset_keys
         self.max_length = max_length
+        self.finetuning_quantized = False
 
     def fit(self, training_data: datasets.arrow_dataset.Dataset, validation_dat: datasets.arrow_dataset.Dataset) -> None:
         self.ordered_dataset_keys = list(training_data.features.keys())
@@ -38,11 +39,16 @@ class PaliGemmaZeroShot(BaseModel):
         if self.ordered_dataset_keys is None or len(self.ordered_dataset_keys) == 0:
             raise ValueError("The model has not been trained yet. Please call the fit method first.")
 
-        model = PaliGemmaForConditionalGeneration.from_pretrained(self.model_name)
+        bnb_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_type=torch.bfloat16
+            ) if self.finetuning_quantized else None
+        model = PaliGemmaForConditionalGeneration.from_pretrained(self.model_name, quantization_config=bnb_config, device_map="auto")
         processor = AutoProcessor.from_pretrained(self.model_name)
 
         for image in test_data:
-            inputs = processor(text = self.task_prompt, images = image, return_tensors="pt")
+            inputs = processor(text = self.task_prompt, images = image, return_tensors="pt").to("cuda")
             generated_ids = model.generate(**inputs, max_new_tokens=self.max_length)
 
             image_token_index = model.config.image_token_index
@@ -57,6 +63,8 @@ class PaliGemmaZeroShot(BaseModel):
             
             yield return_dict
 
+    def __str__(self):
+        return "PaliGemmaZeroShot"
 
 ### Begin of training code
 

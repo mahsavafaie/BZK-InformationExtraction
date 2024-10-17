@@ -2,11 +2,12 @@ import argparse
 import logging
 from inferable.data import get_datasets
 from inferable.models import get_models
-from inferable.evaluation.evaluator import evaluate
+from inferable.evaluation.evaluator import evaluate, predict
 from typing import List
 import os
 import sys
 import random
+
 
 def dir_path(string):
     if os.path.isdir(string):
@@ -23,6 +24,10 @@ def setup_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--datasets", "-d", nargs='+', help="Name of datasets e.g. `inspec`", default=["bzk"]
+    )
+
+    parser.add_argument(
+        "--input", "-i", type=dir_path, help="Folder of the input files"
     )
 
     parser.add_argument(
@@ -65,21 +70,26 @@ def parse_eval_args(parser: argparse.ArgumentParser, cmd_arguments: List[str]) -
 def cli_evaluate() -> None:
     cmd_arguments = sys.argv[1:]
     #cmd_arguments = [
-        #"-d", "bzk_small", "-m", "class=PaliGemma", "-g", "1"
-        #"-d", "bzk_small", "-m", "class=Dummy"
-        #"-d", "bzk_small", "-m", "class=Donut,model_name=naver-clova-ix/donut-base-finetuned-cord-v2"
-        #"-d", "bzk_small", "-m", "class=Donut"
-        #"-d", "bzk_small", "-m", "class=PaliGemmaZeroShot"
-        #"-d", "bzk_small", "-m", "class=DonutModelZeroShot,model_name=output/donut_model/2024-07-27_08-40-01,task_prompt=<s_wieder>" 
+        #"-d", "bzk_small_raw", "-m", "class=Dummy"
+        #"-d", "bzk_small_raw", "-m", "class=PaliGemma", "-g", "1"
+        #"-d", "bzk_small_raw", "-m", "class=Dummy"
+        #"-d", "bzk_small_raw", "-m", "class=Donut,model_name=naver-clova-ix/donut-base-finetuned-cord-v2"
+        #"-d", "bzk_small_raw", "-m", "class=Donut", "-g", "1"
+        #"-d", "bzk_small_raw", "-m", "class=PaliGemmaZeroShot,model_name=/home/sven/BZK-InformationExtraction/output/paligemma_model/2024-10-11_19-44-24", "-g", "1"
+        #"-d", "bzk_small_raw", "-m", "class=DonutModelZeroShot,model_name=output/donut_model/2024-07-27_08-40-01,task_prompt=<s_wieder>" 
+        #"-d", "bzk_small_raw", "-m", "class=InternvlModel"
     #]
 
 
     parser = setup_parser()
     args = parse_eval_args(parser, cmd_arguments)
     models = get_models(args.models)
-    datasets = get_datasets(args.datasets)
-    
-    evaluate(models, datasets, args.output)
+
+    if args.input:
+        predict(models[0], args.input, args.output)
+    else:
+        datasets = get_datasets(args.datasets)
+        evaluate(models, datasets, args.output)
 
 if __name__ == "__main__":
     cli_evaluate()

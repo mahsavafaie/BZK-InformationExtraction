@@ -9,6 +9,9 @@ import datetime
 from nltk import edit_distance
 from collections import defaultdict
 import xlsxwriter
+from PIL import Image
+import json
+
 
 logger = logging.getLogger(__name__)
 
@@ -163,3 +166,16 @@ def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_fold
             evaluation_time = time.time() - start_time
             evaluation_time_hours_minute_seconds = datetime.timedelta(seconds=evaluation_time)
             logger.info(f"Finished evaluation of model {model_name} on {dataset_name} in {evaluation_time_hours_minute_seconds} (HH:MM:SS).")
+
+
+def predict(model, input_folder, output_folder):
+    model_name = str(model)
+    model_name = model_name.replace("/", "_")
+
+    file_path = str(os.path.join(output_folder, f"prediction_results-{model_name}"))
+    with open(file_path + ".json", 'w', newline='', encoding='utf-8') as jsonfile:        
+        # iterate ovber all files with the .jpg extension in the input folder
+        for results in model.predict([Image.open(os.path.join(input_folder, file)) for file in os.listdir(input_folder) if file.endswith(".jpg")]):
+            json.dump(results, jsonfile)
+            jsonfile.write('\n')
+            jsonfile.flush() # write to disk directly

@@ -1,4 +1,4 @@
-# BZK-InformationExtraction
+# Inferable (INFormation ExtRAction BundeszentraLkartEi)
 For collaborative work on extracting information from BZK index cards
 
 

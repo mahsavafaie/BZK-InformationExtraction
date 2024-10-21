@@ -9,23 +9,39 @@ import math
 import numpy as np
 import torchvision.transforms as T
 #from decord import VideoReader, cpu
-from PIL import Image
 import os
 from torchvision.transforms.functional import InterpolationMode
-from transformers import AutoTokenizer, AutoModel
-from inferable.models.utils import extract_json_info, get_filename
+from transformers import AutoTokenizer, AutoModel, BitsAndBytesConfig
+from inferable.models.utils import extract_json_info
 
 logger = logging.getLogger(__name__)
+
+PROMPTS = {
+    '0' : '''<image>\nPlease provide the following information as you can see on the image as a Python dictionary.
+            Use only the following keys: CompensationOffice1, BZKNr, ApplicantFirstName, ApplicantLastName, ApplicantAltFirstName, ApplicantBirthName,
+            ApplicantAltLastName, ApplicantBirthDate, ApplicantBirthPlace, ApplicantCurrentAddress, VictimFirstName, VictimLastName, VictimAltFirstName,
+            VictimBirthName, VictimAltLastName, VictimBirthDate, VictimBirthPlace, VictimDeathDate, VictimDeathPlace''',
+    '1' : '''other prompt '''
+}
 
 class InternvlModel(BaseModel):
     """
     The InternvlModel is a model that uses InternVL2 from OpenGVLab to extract information from images.
     https://huggingface.co/OpenGVLab/InternVL2-Llama3-76B
+    Possible model names are:
+    - OpenGVLab/InternVL2-40B
+    - OpenGVLab/InternVL2-Llama3-76B
     """
 
-    def __init__(self, model_name :str = "OpenGVLab/InternVL2-Llama3-76B") -> None:
+    def __init__(self, model_name :str = "OpenGVLab/InternVL2-Llama3-76B", prompt :str = "0") -> None:
         self.model_name = model_name
         self.predict_keys = None
+        if prompt not in PROMPTS:
+            self.prompt_text = prompt
+            self.prompt_number = None
+        else:
+            self.prompt_number = prompt
+            self.prompt_text = PROMPTS[prompt]
 
     def fit(self, training_data: datasets.arrow_dataset.Dataset, validation_dat: datasets.arrow_dataset.Dataset) -> None:
         self.predict_keys = list(training_data.features.keys())
@@ -112,10 +128,13 @@ class InternvlModel(BaseModel):
             num_layers = {
                 'OpenGVLab/InternVL2-1B': 24, 'OpenGVLab/InternVL2-2B': 24, 'OpenGVLab/InternVL2-4B': 32, 'OpenGVLab/InternVL2-8B': 32,
                 'OpenGVLab/InternVL2-26B': 48, 'OpenGVLab/InternVL2-40B': 60, 'OpenGVLab/InternVL2-Llama3-76B': 80}[model_name]
-            # Since the first GPU will be used for ViT, treat it as half a GPU.
-            num_layers_per_gpu = math.ceil(num_layers / (world_size - 0.5))
+            # Since the first GPU will be used for ViT, treat it as 0.25 (instead of half) of a GPU.
+            # to following number needs to be adapted for different GPU sizes.
+            first_gpu_ratio = 0.25 # how much (percentage points) of the first GPU is already occupied by the vision model
+            num_layers_per_gpu = math.ceil(num_layers / (world_size - first_gpu_ratio))
             num_layers_per_gpu = [num_layers_per_gpu] * world_size
-            num_layers_per_gpu[0] = math.ceil(num_layers_per_gpu[0] * 0.5)
+            num_layers_per_gpu[0] = math.ceil(num_layers_per_gpu[0] * (1.0-first_gpu_ratio))
+            #print(num_layers_per_gpu)
             layer_cnt = 0
             for i, num_layer in enumerate(num_layers_per_gpu):
                 for j in range(num_layer):
@@ -133,12 +152,14 @@ class InternvlModel(BaseModel):
             return device_map
 
 
-        device_map = split_model(self.model_name) # 'auto'#
+        device_map = split_model(self.model_name) 
+        #device_map = 'auto'
+
 
         model = AutoModel.from_pretrained(
             self.model_name,
             torch_dtype=torch.bfloat16,
-            #load_in_8bit=True,  #in 4-bit provides irrelevant results
+            quantization_config=BitsAndBytesConfig(load_in_8bit=True), #load_in_8bit=True,  #in 4-bit provides irrelevant results
             low_cpu_mem_usage=True,
             use_flash_attn=True,
             trust_remote_code=True,
@@ -154,17 +175,50 @@ class InternvlModel(BaseModel):
             pixel_values = load_image(image, max_num=12).to(torch.bfloat16).cuda()
             generation_config = dict(max_new_tokens=1024, do_sample=False)
 
-            question = '''<image>\nPlease provide the following information as you can see on the image as a Python dictionary. If the information is not
-            given, provide 'null' as the value for the key. BZK number is the code that from the top right of the image. : Compensation Office, BZK number, Applicant First Name,
-            Applicant Last Name, Applicant Birth Name, Applicant Birthdate, Applicant Birth place, Applicant Address, Applicant's Marital Status, Victim First Name, Victim Last Name, Victim Birthdate,
-            Victim Birth place, , Victim Death Date, Victim Death Place, Heirs'''
-            response, history = model.chat(tokenizer, pixel_values, question, generation_config, history=None, return_history=True)
+            response, history = model.chat(tokenizer, pixel_values, self.prompt_text, generation_config, history=None, return_history=True)
             
             return_dict = extract_json_info(response)
-            return_dict['filename'] = get_filename(image)
             return_dict['full_response'] = response
 
             yield return_dict
 
     def __str__(self):
-        return "InternvlModel"
+        prompt_name = hash(self.prompt_text) if self.prompt_number is None else self.prompt_number
+        return "InternvlModel_" + self.model_name.split("/")[-1] + "_" + prompt_name
+
+
+####################################################
+# Info:
+# Llama3-67 B  on 2 A100 80GB GPUs
+# only if first GPU is treated as 0.6 instead of 0.5 (half a GPU) works
+#device_map = {}
+#device_map['vision_model'] = 0
+#device_map['mlp1'] = 0
+#device_map['language_model.model.tok_embeddings'] = 0
+#device_map['language_model.model.embed_tokens'] = 0
+#device_map['language_model.output'] = 0
+#device_map['language_model.model.norm'] = 0
+#device_map['language_model.lm_head'] = 0
+
+# 32 don't work
+# 33: GPU 0: 98% GPU 1: 91%
+# 34: GPU 0: 93% GPU 1: 96% 
+# 35: GPU 0: 95% GPU 1: 94% 
+# 36: GPU 0: 97% GPU 1: 92%
+# 37: GPU 0: 98% GPU 1: 90%
+# 38: don't work
+
+#split_point = 35
+#for i in range(split_point):
+#    device_map[f'language_model.model.layers.{i}'] = 0
+#for i in range(split_point, 80):
+#    device_map[f'language_model.model.layers.{i}'] = 1
+#print(device_map) 
+
+
+# finetune: 
+# https://github.com/OpenGVLab/InternVL/blob/main/internvl_chat/internvl/train/internvl_chat_finetune.py#L816
+# https://internvl.readthedocs.io/en/latest/internvl2.0/finetune.html
+
+
+#

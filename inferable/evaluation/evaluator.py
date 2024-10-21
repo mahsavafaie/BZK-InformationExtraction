@@ -1,5 +1,6 @@
 from inferable.models.base_model import BaseModel
 from inferable.data.base_dataset import BaseDataset
+from inferable.models.utils import get_filename
 import os
 import csv
 from typing import List
@@ -15,21 +16,20 @@ import json
 
 logger = logging.getLogger(__name__)
 
-def get_filename(image):
-    if hasattr(image, "filename") and image.filename != "":
-        return os.path.basename(image.filename)
-    return ""
-
 def format_numbers(number):
     return str(number)#.replace('.', ',') # f'{number:.15f}'.replace('.', ',') # .5
+  
 
-   
-
-def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_folder : str):
+def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_folder : str, write_images : bool = True):
     for dataset in datasets:
         dataset_name = dataset.__class__.__name__
         training_data, validation_data = dataset.get_training_data(), dataset.get_validation_data()
         test_data = dataset.get_test_data()
+
+        if write_images:
+            for i, image in enumerate(test_data['image']):
+                os.makedirs(os.path.join(output_folder, dataset_name), exist_ok=True)
+                image.save(os.path.join(output_folder, dataset_name, f"image_{i:03}.jpg"))
 
         training_data = training_data.remove_columns("Layout class")
         validation_data = validation_data.remove_columns("Layout class")
@@ -78,7 +78,8 @@ def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_fold
                     prediction_time_sum += prediction_time
 
                     ground_truth = test_data[i]
-                    row = [get_filename(ground_truth['image']), ground_truth['Layout class']]
+                    file_name = os.path.join(dataset_name, f"image_{i:03}.jpg")
+                    row = [file_name, ground_truth['Layout class']]
                     avg_edit_distance = 0
                     avg_normalized_edit_distance = 0
                     non_empty_comparisons_of_row = 0
@@ -119,7 +120,7 @@ def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_fold
                     not_evaluated_keys = set(predicted.keys()) - set(keys_to_be_predicted)
                     not_evaluated_dict = {not_evaluated_key: predicted[not_evaluated_key] for not_evaluated_key in not_evaluated_keys}
 
-                    row.extend(["", prediction_time, str(not_evaluated_dict)])
+                    row.extend(["", prediction_time, json.dumps(not_evaluated_dict)])
                     row.insert(2, format_numbers(avg_edit_distance / len(keys_to_be_predicted)))
                     row.insert(3, format_numbers(avg_normalized_edit_distance / len(keys_to_be_predicted)))
                     row.insert(4, format_numbers(avg_edit_distance / non_empty_comparisons_of_row))
@@ -172,10 +173,20 @@ def predict(model, input_folder, output_folder):
     model_name = str(model)
     model_name = model_name.replace("/", "_")
 
-    file_path = str(os.path.join(output_folder, f"prediction_results-{model_name}"))
-    with open(file_path + ".json", 'w', newline='', encoding='utf-8') as jsonfile:        
+    file_path = str(os.path.join(output_folder, f"prediction_results-{model_name}.jsonl"))
+    already_processed_files = set()
+    if os.path.exists(output_folder):
+        with open(file_path, 'r', newline='', encoding='utf-8') as jsonfile:
+            for line in jsonfile:
+                data = json.loads(line)
+                already_processed_files.add(data['filename'])
+
+    with open(file_path, 'w', newline='', encoding='utf-8') as jsonfile:        
         # iterate ovber all files with the .jpg extension in the input folder
-        for results in model.predict([Image.open(os.path.join(input_folder, file)) for file in os.listdir(input_folder) if file.endswith(".jpg")]):
+        predictions_files = [file for file in os.listdir(input_folder) if file.endswith(".jpg") and file not in already_processed_files]
+
+        for i, results in enumerate(model.predict([Image.open(os.path.join(input_folder, file)) for file in predictions_files])):
+            results['filename'] = predictions_files[i]
             json.dump(results, jsonfile)
             jsonfile.write('\n')
             jsonfile.flush() # write to disk directly

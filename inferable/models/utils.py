@@ -1,11 +1,52 @@
 import re
 import os
 import logging
+import json
+from collections import OrderedDict
+
 
 logger = logging.getLogger(__name__)
 
 _RE_COMBINE_WHITESPACE = re.compile(r"\s+")
 _POSSIBLE_NULL_VALUES = set(["null", "none", "nil", "nan"])
+
+
+def to_xml(sample, ordered_dataset_keys, keep_empty_columns):
+    """
+    Converts a sample to an xml string with <s_column_name>value</s_column_name> for each column in ordered_dataset_keys.
+    """
+    target_sequence = ''
+    if keep_empty_columns:
+        for column in ordered_dataset_keys:
+            column_value = sample[column]
+            if column_value is None:
+                column_value = ''
+            target_sequence += f"<s_{column}>{column_value}</s_{column}>"
+    else:
+        for column in ordered_dataset_keys:
+            column_value = sample[column]
+            if column_value:
+                target_sequence += f"<s_{column}>{column_value}</s_{column}>"
+    return target_sequence
+
+def to_json(sample, ordered_dataset_keys, keep_empty_columns):
+    """
+    Converts a sample to a json string.
+    """
+    key_value_pairs = []
+    if keep_empty_columns:
+        for column in ordered_dataset_keys:
+            column_value = sample[column]
+            if column_value is None:
+                column_value = ''
+            key_value_pairs.append((column, column_value))
+    else:
+        for column in ordered_dataset_keys:
+            column_value = sample[column]
+            if column_value:
+                key_value_pairs.append((column, column_value))
+    return json.dumps(OrderedDict(key_value_pairs))
+
 
 def extract_xml_info(sequence, tag_name, smallest_distance: bool = True, remove_tags_inside: bool = True, allow_partial_match: bool = False) -> str:
     """

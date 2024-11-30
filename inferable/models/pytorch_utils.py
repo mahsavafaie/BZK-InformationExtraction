@@ -31,3 +31,4 @@ class PyTorchDatasetWrapper(torch.utils.data.Dataset):
                 if column_value:
                     target_sequence += f"<s_{column}>{column_value}</s_{column}>"
         return sample["image"], target_sequence
+        # return sample["image"], to_xml(self.dataset[idx], self.ordered_dataset_keys, self.keep_empty_columns)

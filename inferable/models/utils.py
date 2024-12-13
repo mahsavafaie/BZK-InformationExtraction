@@ -3,7 +3,7 @@ import os
 import logging
 import json
 from collections import OrderedDict
-
+from nltk import edit_distance
 
 logger = logging.getLogger(__name__)
 
@@ -183,4 +183,27 @@ def extract_json_info(sequence) -> str:
     
 
 
+def align_keys(ground_truth_keys: list[str], extracted_dictionary: dict[str, str], method:str='') -> dict[str, str]:
+    """
+    Aligns the keys of the extracted dictionary with the ground truth keys.
+    """
+    #calculate the edit distance between the keys of the ground truth and the extracted dictionary
+    edit_distance_mapping = []
+    for ground_truth_key in ground_truth_keys:
+        for extracted_key in extracted_dictionary.keys():
+            edit_distance_mapping.append((ground_truth_key, extracted_key, edit_distance(ground_truth_key, extracted_key)/max(len(ground_truth_key), len(extracted_key))))
+    
+    # sort the edit distance mapping by the edit distance
+    edit_distance_mapping.sort(key=lambda x: x[2])
+
+    # find the best alignment
+    final_dict = {key: '' for key in ground_truth_keys}
+    used_keys_ground_truth = set()
+    used_keys_extracted_dict = set()
+    for ground_truth_key, extracted_key, _ in edit_distance_mapping:
+        if ground_truth_key not in used_keys_ground_truth and extracted_key not in used_keys_extracted_dict:
+            used_keys_ground_truth.add(ground_truth_key)
+            used_keys_extracted_dict.add(extracted_key)
+            final_dict[ground_truth_key] = extracted_dictionary[extracted_key]
+    return final_dict
 

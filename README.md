@@ -33,6 +33,10 @@ Install their library (further information can be found at their [installation w
 ```
 git clone https://github.com/OpenGVLab/InternVL.git
 ``` 
+- Change to the root folder of the cloned repository:
+```
+cd InternVL
+```
 - Create a conda virtual environment and activate it:
 ```
 conda create -n internvl python=3.9 -y
@@ -40,7 +44,7 @@ conda activate internvl
 ```
 - Install dependencies using requirements.txt:
 ```
-pip install -r requirements.txt
+pip install -r requirements/internvl_chat.txt
 ```
 - Install flash-attn==2.3.6:
 ```
@@ -79,7 +83,7 @@ pip install accelerate==0.28.0
 
 
 #### Download their models
-- Go to folder `internvl_chat` and execute:
+- Go to folder `InternVL/internvl_chat` and execute:
 ```
 mkdir pretrained
 cd pretrained/
@@ -111,4 +115,12 @@ and point the `root_folder` to the folder in the cloned internvl directory `Inte
 
 #### Run training
 
-- Execute (depending on the model) the corresponding script (check that you are still in folder `internvl_chat` in the cloned repository)
+- Execute (depending on the model) [the corresponding script](https://internvl.readthedocs.io/en/latest/internvl2.0/finetune.html#start-2nd-fine-tuning) (check that you are still in folder `internvl_chat` in the cloned repository)
+    - e.g. for fine-tuning the 1B model:
+```# Using 8 GPUs, fine-tune the full LLM, cost about 30G per GPU
+GPUS=8 PER_DEVICE_BATCH_SIZE=1 sh shell/internvl2.0/2nd_finetune/internvl2_1b_qwen2_0_5b_dynamic_res_2nd_finetune_full.sh
+# Using 2 GPUs, fine-tune the LoRA, cost about 27G per GPU
+GPUS=2 PER_DEVICE_BATCH_SIZE=1 sh shell/internvl2.0/2nd_finetune/internvl2_1b_qwen2_0_5b_dynamic_res_2nd_finetune_lora.sh
+# Using 8 GPUs, fine-tune the LoRA, cost about 27G per GPU
+GPUS=8 PER_DEVICE_BATCH_SIZE=1 sh shell/internvl2.0/2nd_finetune/internvl2_1b_qwen2_0_5b_dynamic_res_2nd_finetune_lora.sh
+```

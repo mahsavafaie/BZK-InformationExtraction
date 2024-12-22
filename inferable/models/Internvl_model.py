@@ -12,34 +12,10 @@ import torchvision.transforms as T
 import os
 from torchvision.transforms.functional import InterpolationMode
 from transformers import AutoTokenizer, AutoModel, BitsAndBytesConfig
-from inferable.models.utils import extract_json_info
+from inferable.models.utils import extract_json_info, align_keys
+from inferable.models.prompt_utils import get_prompt_id, get_prompt_text
 
 logger = logging.getLogger(__name__)
-
-PROMPTS = {
-    '0' : '''<image>\nPlease provide the following information as you can see on the image as a Python dictionary.
-            Use only the following keys: CompensationOffice1, BZKNr, ApplicantFirstName, ApplicantLastName, ApplicantAltFirstName, ApplicantBirthName,
-            ApplicantAltLastName, ApplicantBirthDate, ApplicantBirthPlace, ApplicantCurrentAddress, VictimFirstName, VictimLastName, VictimAltFirstName,
-            VictimBirthName, VictimAltLastName, VictimBirthDate, VictimBirthPlace, VictimDeathDate, VictimDeathPlace''',
-    # prompt 1 includes german words for applicant, victim and BZK number        
-    '1' : '''<image>\nPlease provide the following information as you can see on the image as a Python dictionary.
-            Use only the following keys: CompensationOffice1, BZKNr, ApplicantFirstName, ApplicantLastName, ApplicantAltFirstName, ApplicantBirthName,
-            ApplicantAltLastName, ApplicantBirthDate, ApplicantBirthPlace, ApplicantCurrentAddress, VictimFirstName, VictimLastName, VictimAltFirstName,
-            VictimBirthName, VictimAltLastName, VictimBirthDate, VictimBirthPlace, VictimDeathDate, VictimDeathPlace
-            When extracting the information about the applicant, look at the text below the words "Anspruchsberechtigter" or 
-            "Antragsteller". When extracting the information about the victim, look at the text below the word "Verfolgter". 
-            When extracting the information about the BZKnr, look at the text around "RegNr" or "Kartei-Nr" or "Register Nr."
-            or "A.Z." or "Grundlisten-Nr" or "Z.K" or "Art.V-56-II-Nr" or "Eingangsnummer".''',
-    # prompt  includes german words for applicant, victim and BZK number + Standard date format and normalised address       
-    '2' : '''<image>\nPlease provide the following information as you can see on the image as a Python dictionary.
-            Use only the following keys: CompensationOffice1, BZKNr, ApplicantFirstName, ApplicantLastName, ApplicantAltFirstName, ApplicantBirthName,
-            ApplicantAltLastName, ApplicantBirthDate, ApplicantBirthPlace, ApplicantCurrentAddress, VictimFirstName, VictimLastName, VictimAltFirstName,
-            VictimBirthName, VictimAltLastName, VictimBirthDate, VictimBirthPlace, VictimDeathDate, VictimDeathPlace
-            When extracting the information about the BZKnr, look at the text around "RegNr" or "Kartei-Nr" or "Register Nr."
-            or "A.Z." or "Grundlisten-Nr" or "Z.K" or "Art.V-56-II-Nr" or "Eingangsnummer". 
-            Convert the values for VictimDeathDate and ApplicantBirthDate and VictimBirthDate into the YYYY-MM-DD date format. 
-            from ApplicantCurrentAddress, extract the city only.'''
-}
 
 class InternvlModel(BaseModel):
     """
@@ -50,15 +26,11 @@ class InternvlModel(BaseModel):
     - OpenGVLab/InternVL2-Llama3-76B
     """
 
-    def __init__(self, model_name :str = "OpenGVLab/InternVL2-40B", prompt :str = "2") -> None:
+    def __init__(self, model_name :str = "OpenGVLab/InternVL2-40B", prompt :str = "2", key_alignment :bool = True) -> None:
         self.model_name = model_name
         self.predict_keys = None
-        if prompt not in PROMPTS:
-            self.prompt_text = prompt
-            self.prompt_number = None
-        else:
-            self.prompt_number = prompt
-            self.prompt_text = PROMPTS[prompt]
+        self.key_alignment = key_alignment
+        self.prompt = prompt
 
     def fit(self, training_data: datasets.arrow_dataset.Dataset, validation_dat: datasets.arrow_dataset.Dataset) -> None:
         self.predict_keys = list(training_data.features.keys())
@@ -186,22 +158,23 @@ class InternvlModel(BaseModel):
         tokenizer = AutoTokenizer.from_pretrained(self.model_name, trust_remote_code=True, use_fast=False)
         #load the model before the loop
 
-
+        prompt_text = get_prompt_text(self.prompt)
         for image in test_data:
             #the inference code
             pixel_values = load_image(image, max_num=12).to(torch.bfloat16).cuda()
             generation_config = dict(max_new_tokens=1024, do_sample=False)
 
-            response, history = model.chat(tokenizer, pixel_values, self.prompt_text, generation_config, history=None, return_history=True)
+            response, history = model.chat(tokenizer, pixel_values, prompt_text, generation_config, history=None, return_history=True)
             
             return_dict = extract_json_info(response)
+            if self.key_alignment:
+                return_dict = align_keys(self.predict_keys, return_dict)
             return_dict['full_response'] = response
 
             yield return_dict
 
     def __str__(self):
-        prompt_name = hash(self.prompt_text) if self.prompt_number is None else self.prompt_number
-        return "InternvlModel_" + self.model_name.split("/")[-1] + "_" + prompt_name
+        return "InternvlModel_" + self.model_name.split("/")[-1] + "_p" + get_prompt_id(self.prompt) + "_ka" + str(self.key_alignment)
 
 
 ####################################################

@@ -183,7 +183,7 @@ def extract_json_info(sequence) -> str:
     
 
 
-def align_keys(ground_truth_keys: list[str], extracted_dictionary: dict[str, str], method:str='') -> dict[str, str]:
+def align_keys(ground_truth_keys: list[str], extracted_dictionary: dict[str, str]) -> dict[str, str]:
     """
     Aligns the keys of the extracted dictionary with the ground truth keys.
     """

@@ -37,35 +37,10 @@ PROMPTS = {
             Use only the following keys: CompensationOffice1, BZKNr, ApplicantFirstName, ApplicantLastName, ApplicantAltFirstName, ApplicantBirthName,
             ApplicantAltLastName, ApplicantBirthDate, ApplicantBirthPlace, ApplicantCurrentAddress, VictimFirstName, VictimLastName, VictimAltFirstName,
             VictimBirthName, VictimAltLastName, VictimBirthDate, VictimBirthPlace, VictimDeathDate, VictimDeathPlace
-            When extracting the information about the applicant, look at the text below the words "Anspruchsberechtigter" or 
-            "Antragsteller". When extracting the information about the victim, look at the text below the word "Verfolgter". 
             When extracting the information about the BZKnr, look at the text around "RegNr" or "Kartei-Nr" or "Register Nr."
             or "A.Z." or "Grundlisten-Nr" or "Z.K" or "Art.V-56-II-Nr" or "Eingangsnummer". 
             Convert the values for VictimDeathDate and ApplicantBirthDate and VictimBirthDate into the YYYY-MM-DD date format. 
-            From ApplicantCurrentAddress, extract the city only.''',
-    '4' : '''<image>\nThe image is an index card from the process of Compensation for atrocities of Nazi Germany, called "Wiedergutmachung". 
-            Please provide the following information as you can see on the image as a Python dictionary.
-            Use only the following keys: CompensationOffice1, BZKNr, ApplicantFirstName, ApplicantLastName, ApplicantAltFirstName, ApplicantBirthName,
-            ApplicantAltLastName, ApplicantBirthDate, ApplicantBirthPlace, ApplicantCurrentAddress, VictimFirstName, VictimLastName, VictimAltFirstName,
-            VictimBirthName, VictimAltLastName, VictimBirthDate, VictimBirthPlace, VictimDeathDate, VictimDeathPlace
-            When extracting the information about the applicant, look at the text below the words "Anspruchsberechtigter" or 
-            "Antragsteller". An applicant's death date can only begin with "19". When extracting the information about the victim, look at the text below 
-            the word "Verfolgter". A victim's birth year can almost certainly only be before 1946. A victim's death year can only be completed by "19".
-            When extracting the information about the BZKnr, look at the text around "RegNr" or "Kartei-Nr" or "Register Nr."
-            or "A.Z." or "Grundlisten-Nr" or "Z.K" or "Art.V-56-II-Nr" or "Eingangsnummer". ''',        
-    '3' : '''<image>\nThe image is an index card from the process of Compensation for atrocities of Nazi Germany, called "Wiedergutmachung". 
-            Please provide the following information as you can see on the image as a Python dictionary.
-            Use only the following keys: CompensationOffice1, BZKNr, ApplicantFirstName, ApplicantLastName, ApplicantAltFirstName, ApplicantBirthName,
-            ApplicantAltLastName, ApplicantBirthDate, ApplicantBirthPlace, ApplicantCurrentAddress, VictimFirstName, VictimLastName, VictimAltFirstName,
-            VictimBirthName, VictimAltLastName, VictimBirthDate, VictimBirthPlace, VictimDeathDate, VictimDeathPlace
-            When extracting the information about the applicant, look at the text below the words "Anspruchsberechtigter" or 
-            "Antragsteller". An applicant's death date can only begin with "19". When extracting the information about the victim, look at the text below 
-            the word "Verfolgter". A victim's birth year can almost certainly only be before 1946. A victim's death year can only be completed by "19".
-            When extracting the information about the BZKnr, look at the text around "RegNr" or "Kartei-Nr" or "Register Nr."
-            or "A.Z." or "Grundlisten-Nr" or "Z.K" or "Art.V-56-II-Nr" or "Eingangsnummer". 
-            Convert the values for VictimDeathDate and ApplicantBirthDate and VictimBirthDate into the YYYY-MM-DD date format. 
-            From ApplicantCurrentAddress, extract the city only.''',
-    '5' : '''<image>\nExtract BZK data'''
+            from ApplicantCurrentAddress, extract the city only.'''
 }
 
 =======
@@ -80,10 +55,14 @@ class InternvlModel(BaseModel):
     """
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def __init__(self, model_name :str = "OpenGVLab/InternVL2_Llama3-76B", prompt :str = "3") -> None:
 =======
     def __init__(self, model_name :str = "OpenGVLab/InternVL2-40B", prompt :str = "2", key_alignment :bool = True) -> None:
 >>>>>>> 5964a6bb83c21654280495af2a5775adef5e00e8
+=======
+    def __init__(self, model_name :str = "OpenGVLab/InternVL2-40B", prompt :str = "2") -> None:
+>>>>>>> parent of 37eedf9 (Evaluation results added)
         self.model_name = model_name
         self.predict_keys = None
         self.key_alignment = key_alignment
@@ -173,7 +152,7 @@ class InternvlModel(BaseModel):
             world_size = torch.cuda.device_count()
             num_layers = {
                 'OpenGVLab/InternVL2-1B': 24, 'OpenGVLab/InternVL2-2B': 24, 'OpenGVLab/InternVL2-4B': 32, 'OpenGVLab/InternVL2-8B': 32,
-                'OpenGVLab/InternVL2-26B': 48, 'OpenGVLab/InternVL2-40B': 60,  'OpenGVLab/InternVL2_Llama3-76B': 80}[model_name]
+                'OpenGVLab/InternVL2-26B': 48, 'OpenGVLab/InternVL2-40B': 60, 'OpenGVLab/InternVL2-Llama3-76B': 80}[model_name]
             # Since the first GPU will be used for ViT, treat it as 0.25 (instead of half) of a GPU.
             # to following number needs to be adapted for different GPU sizes.
             first_gpu_ratio = 0.25 # how much (percentage points) of the first GPU is already occupied by the vision model
@@ -211,7 +190,7 @@ class InternvlModel(BaseModel):
             trust_remote_code=True,
             device_map=device_map).eval()
         #print(model.hf_device_map)
-        
+
         tokenizer = AutoTokenizer.from_pretrained(self.model_name, trust_remote_code=True, use_fast=False)
         #load the model before the loop
 

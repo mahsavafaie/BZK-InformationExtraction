@@ -122,8 +122,8 @@ def write_test_data() -> None:
             file.write('\n')
 
 def cli_evaluate() -> None:
-    #cmd_arguments = sys.argv[1:]
-    cmd_arguments = [
+    cmd_arguments = sys.argv[1:]
+    #cmd_arguments = [
         #"eval", "-d", "bzk_small_raw", "-m", "class=Dummy"
         #"eval", "-d", "bzk_small_raw", "-m", "class=PaliGemma", "-g", "1"
         #"eval", "-d", "bzk_small_raw", "-m", "class=Dummy"
@@ -135,11 +135,11 @@ def cli_evaluate() -> None:
         #"eval", "-d", "bzk_small_raw", "-m", "class=InternvlWriteTraining,root_folder=/home/sven/bzk_train_internvl/InternVL/internvl_chat"
         #"eval", "-d", "bzk_small_raw", "-m", "class=InternvlWriteTraining,root_folder=train_folder"
 
-       "eval", "-d", "bzk_small_raw", "-m", "class=Dummy", "-g", "1"
+       #"eval", "-d", "bzk_small_raw", "-m", "class=Dummy", "-g", "1"
 
         # write knowledge graph
         #"kg", "-p", "test_data.jsonl", "-k", "test_data.nt"
-    ]
+    #]
 
     
     parser = setup_parser()

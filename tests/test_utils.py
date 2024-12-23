@@ -1,4 +1,4 @@
-from inferable.models.utils import extract_xml_info, extract_json_info
+from inferable.models.utils import extract_xml_info, extract_json_info, align_keys
 
 # test xml info extraction
 
@@ -141,3 +141,25 @@ def test_json_where_values_contains_comma():
     }
 
     assert(gt == extract_json_info(text))
+
+#### Test the align_keys function
+
+def test_align_keys():
+    ground_truth_keys = ["Applicant First Name", "Applicant Last Name", "Applicant Birthdate", "Applicant Birthplace", "Applicant Address"]
+    extracted_dict = {
+        "Applicant First Name": "Max",# correct
+        "Applicant_last_name": "Muster", # undersores
+        "Applicant Birthhdate": "10.5.1913", # added h
+        "Birthplace": "Paris", # missing Applicant
+        "Applicant Addressss": "Paris" # added more s
+    }
+
+    aligned_dict = {
+        "Applicant First Name": "Max",
+        "Applicant Last Name": "Muster",
+        "Applicant Birthdate": "10.5.1913",
+        "Applicant Birthplace": "Paris",
+        "Applicant Address": "Paris",
+    }
+
+    assert(aligned_dict == align_keys(ground_truth_keys, extracted_dict))

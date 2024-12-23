@@ -6,6 +6,7 @@ import os
 import logging
 import json
 from inferable.models.utils import to_json, to_xml
+from inferable.models.prompt_utils import get_prompt_id, get_prompt_text
 
 logger = logging.getLogger(__name__)
 
@@ -14,11 +15,11 @@ class InternvlWriteTrainModel(BaseModel):
     - https://internvl.readthedocs.io/en/latest/internvl2.0/finetune.html
     - https://internvl.readthedocs.io/en/latest/get_started/chat_data_format.html
     """
-    def __init__(self, root_folder: str, prompt: str="Extract BZK data", type: str="json", keep_empty_columns: bool= True) -> None:
+    def __init__(self, root_folder: str, prompt: str="3", type: str="json", keep_empty_columns: bool= True) -> None:
         """Initializes the InternvlWriteTrainModel
         Args:
             root_folder (str): should point to /InternVL/internvl_chat when the git repository is cloned
-            prompt (str, optional): the prompt to use for the user. Defaults to "Extract BZK data".
+            prompt (str, optional): the prompt to use for the user. Defaults to prompt number 3.
             type (str, optional): can either be json or xml (how the ground truth is formatted). Defaults to "json".
             keep_empty_columns (bool, optional): if true, then all columns are used independent if they are empty or not. Defaults to True.
         """
@@ -52,7 +53,8 @@ class InternvlWriteTrainModel(BaseModel):
         else:
             logger.error(f"Type {self.type} is not supported. Please use json or xml. Defaulting to json.")
             serialize_function = to_json
-            
+        
+        prompt_text = get_prompt_text(self.prompt)
         # write jsonl file which hold all the data
         os.makedirs(os.path.join(self.root_folder, "playground", "opensource"), exist_ok=True)
         with open(os.path.join(self.root_folder, "playground", "opensource", "bzk.jsonl"), "w") as f:
@@ -70,7 +72,7 @@ class InternvlWriteTrainModel(BaseModel):
                     "conversations": [ 
                         {
                             "from": "human",
-                            "value" : "<image>\n" + self.prompt
+                            "value" : prompt_text
                         },
                         {
                             "from": "gpt",
@@ -88,4 +90,4 @@ class InternvlWriteTrainModel(BaseModel):
         return []
 
     def __str__(self):
-        return "InternvlWriteTrainModel"
+        return "InternvlWriteTrainModel_" + get_prompt_id(self.prompt)

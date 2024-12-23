@@ -12,10 +12,12 @@ import torchvision.transforms as T
 import os
 from torchvision.transforms.functional import InterpolationMode
 from transformers import AutoTokenizer, AutoModel, BitsAndBytesConfig
-from inferable.models.utils import extract_json_info
+from inferable.models.utils import extract_json_info, align_keys
+from inferable.models.prompt_utils import get_prompt_id, get_prompt_text
 
 logger = logging.getLogger(__name__)
 
+<<<<<<< HEAD
 PROMPTS = {
     '0' : '''<image>\nPlease provide the following information as you can see on the image as a Python dictionary.
             Use only the following keys: CompensationOffice1, BZKNr, ApplicantFirstName, ApplicantLastName, ApplicantAltFirstName, ApplicantBirthName,
@@ -66,6 +68,8 @@ PROMPTS = {
     '5' : '''<image>\nExtract BZK data'''
 }
 
+=======
+>>>>>>> 5964a6bb83c21654280495af2a5775adef5e00e8
 class InternvlModel(BaseModel):
     """
     The InternvlModel is a model that uses InternVL2 from OpenGVLab to extract information from images.
@@ -75,15 +79,15 @@ class InternvlModel(BaseModel):
     - OpenGVLab/InternVL2-Llama3-76B
     """
 
+<<<<<<< HEAD
     def __init__(self, model_name :str = "OpenGVLab/InternVL2_Llama3-76B", prompt :str = "3") -> None:
+=======
+    def __init__(self, model_name :str = "OpenGVLab/InternVL2-40B", prompt :str = "2", key_alignment :bool = True) -> None:
+>>>>>>> 5964a6bb83c21654280495af2a5775adef5e00e8
         self.model_name = model_name
         self.predict_keys = None
-        if prompt not in PROMPTS:
-            self.prompt_text = prompt
-            self.prompt_number = None
-        else:
-            self.prompt_number = prompt
-            self.prompt_text = PROMPTS[prompt]
+        self.key_alignment = key_alignment
+        self.prompt = prompt
 
     def fit(self, training_data: datasets.arrow_dataset.Dataset, validation_dat: datasets.arrow_dataset.Dataset) -> None:
         self.predict_keys = list(training_data.features.keys())
@@ -211,22 +215,23 @@ class InternvlModel(BaseModel):
         tokenizer = AutoTokenizer.from_pretrained(self.model_name, trust_remote_code=True, use_fast=False)
         #load the model before the loop
 
-
+        prompt_text = get_prompt_text(self.prompt)
         for image in test_data:
             #the inference code
             pixel_values = load_image(image, max_num=12).to(torch.bfloat16).cuda()
             generation_config = dict(max_new_tokens=1024, do_sample=False)
 
-            response, history = model.chat(tokenizer, pixel_values, self.prompt_text, generation_config, history=None, return_history=True)
+            response, history = model.chat(tokenizer, pixel_values, prompt_text, generation_config, history=None, return_history=True)
             
             return_dict = extract_json_info(response)
+            if self.key_alignment:
+                return_dict = align_keys(self.predict_keys, return_dict)
             return_dict['full_response'] = response
 
             yield return_dict
 
     def __str__(self):
-        prompt_name = hash(self.prompt_text) if self.prompt_number is None else self.prompt_number
-        return "InternvlModel_" + self.model_name.split("/")[-1] + "_" + prompt_name
+        return "InternvlModel_" + self.model_name.split("/")[-1] + "_p" + get_prompt_id(self.prompt) + "_ka" + str(self.key_alignment)
 
 
 ####################################################

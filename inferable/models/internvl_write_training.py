@@ -15,11 +15,11 @@ class InternvlWriteTrainModel(BaseModel):
     - https://internvl.readthedocs.io/en/latest/internvl2.0/finetune.html
     - https://internvl.readthedocs.io/en/latest/get_started/chat_data_format.html
     """
-    def __init__(self, root_folder: str, prompt: str="3", type: str="json", keep_empty_columns: bool= True) -> None:
+    def __init__(self, root_folder: str, prompt: str="5", type: str="json", keep_empty_columns: bool= True) -> None:
         """Initializes the InternvlWriteTrainModel
         Args:
             root_folder (str): should point to /InternVL/internvl_chat when the git repository is cloned
-            prompt (str, optional): the prompt to use for the user. Defaults to prompt number 3.
+            prompt (str, optional): the prompt to use for the user. Defaults to prompt number 5.
             type (str, optional): can either be json or xml (how the ground truth is formatted). Defaults to "json".
             keep_empty_columns (bool, optional): if true, then all columns are used independent if they are empty or not. Defaults to True.
         """

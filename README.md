@@ -124,3 +124,35 @@ GPUS=2 PER_DEVICE_BATCH_SIZE=1 sh shell/internvl2.0/2nd_finetune/internvl2_1b_qw
 # Using 8 GPUs, fine-tune the LoRA, cost about 27G per GPU
 GPUS=8 PER_DEVICE_BATCH_SIZE=1 sh shell/internvl2.0/2nd_finetune/internvl2_1b_qwen2_0_5b_dynamic_res_2nd_finetune_lora.sh
 ```
+
+
+
+#### In Case of LORA, Merge Weights
+
+Based on [issue 468](https://github.com/OpenGVLab/InternVL/issues/468#issuecomment-2353846695) the weights of the lora model needs to be merged after training.
+
+```
+python tools/merge_lora.py {directory of finetuned model} {directory of merged model}
+```
+
+Most of the time, the train models resides at `work_dirs/internvl_chat_v2_0`, thus a command can look like this (for the 40B version):
+
+```
+python tools/merge_lora.py work_dirs/internvl_chat_v2_0/internvl2_40b_hermes2_yi_34b_dynamic_res_2nd_finetune_lora work_dirs/internvl_chat_v2_0/40bmerged
+```
+
+(For me `python tools/merge_lora.py`didn't work because it does not find the internvl folder. Thus I copied the `merge_lora.py` one folder up to `/internvl_chat` and then executed `python merge_lora.py` with the additonal arguments)
+
+#### In All Cases, Copy Python Files
+
+The architecture files are not copied during training, thus copy all python files from the original model (e.g. `pretrained/InternVL2-40B/*.py`) to the final folder.
+A command can look like this:
+
+```
+cp {directory of pretrained model}/*.py {directory of finetuned/merged model}
+```
+
+For a lora 40B model the command looks like:
+```
+cp pretrained/InternVL2-40B/*.py work_dirs/internvl_chat_v2_0/40bmerged
+```

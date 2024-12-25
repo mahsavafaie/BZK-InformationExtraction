@@ -172,7 +172,7 @@ def extract_json_info(sequence) -> str:
     for pair in attribute_value_pairs:
         one_attribute_value_pair = _split_only_if_not_inside_quotes(pair, ":")
         if len(one_attribute_value_pair) < 2:
-            logger.warning(f"Could not split {pair} into key value pair")
+            logger.info(f'Could not split "{pair}" into key value pair')
             continue
 
 

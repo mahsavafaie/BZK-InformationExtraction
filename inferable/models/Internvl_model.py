@@ -11,7 +11,8 @@ import torchvision.transforms as T
 #from decord import VideoReader, cpu
 import os
 from torchvision.transforms.functional import InterpolationMode
-from transformers import AutoTokenizer, AutoModel, BitsAndBytesConfig
+from accelerate import init_empty_weights 
+from transformers import AutoConfig, AutoTokenizer, AutoModel, BitsAndBytesConfig
 from inferable.models.utils import extract_json_info, align_keys
 from inferable.models.prompt_utils import get_prompt_id, get_prompt_text
 
@@ -26,11 +27,12 @@ class InternvlModel(BaseModel):
     - OpenGVLab/InternVL2-Llama3-76B
     """
 
-    def __init__(self, model_name :str = "OpenGVLab/InternVL2-40B", prompt :str = "2", key_alignment :bool = True) -> None:
-        self.model_name = model_name
+    def __init__(self, model_name :str = "OpenGVLab/InternVL2-40B", prompt :str = "2", quantization :bool = False, key_alignment :bool = True) -> None:
         self.predict_keys = None
-        self.key_alignment = key_alignment
+        self.model_name = model_name
         self.prompt = prompt
+        self.quantization = quantization
+        self.key_alignment = key_alignment
 
     def fit(self, training_data: datasets.arrow_dataset.Dataset, validation_dat: datasets.arrow_dataset.Dataset) -> None:
         self.predict_keys = list(training_data.features.keys())
@@ -114,9 +116,12 @@ class InternvlModel(BaseModel):
         def split_model(model_name):
             device_map = {}
             world_size = torch.cuda.device_count()
-            num_layers = {
-                'OpenGVLab/InternVL2-1B': 24, 'OpenGVLab/InternVL2-2B': 24, 'OpenGVLab/InternVL2-4B': 32, 'OpenGVLab/InternVL2-8B': 32,
-                'OpenGVLab/InternVL2-26B': 48, 'OpenGVLab/InternVL2-40B': 60, 'OpenGVLab/InternVL2-Llama3-76B': 80}[model_name]
+
+            # find the number of layers in the model name ( based on https://huggingface.co/blog/accelerate-large-models)
+            config = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
+            with init_empty_weights():
+                model = AutoModel.from_config(config, trust_remote_code=True)
+            num_layers = len(model.language_model.model.layers)
             # Since the first GPU will be used for ViT, treat it as 0.25 (instead of half) of a GPU.
             # to following number needs to be adapted for different GPU sizes.
             first_gpu_ratio = 0.25 # how much (percentage points) of the first GPU is already occupied by the vision model
@@ -148,7 +153,7 @@ class InternvlModel(BaseModel):
         model = AutoModel.from_pretrained(
             self.model_name,
             torch_dtype=torch.bfloat16,
-            quantization_config=BitsAndBytesConfig(load_in_8bit=True), #load_in_8bit=True,  #in 4-bit provides irrelevant results
+            quantization_config=BitsAndBytesConfig(load_in_8bit=True) if self.quantization else None, #in 4-bit provides irrelevant results
             low_cpu_mem_usage=True,
             use_flash_attn=True,
             trust_remote_code=True,

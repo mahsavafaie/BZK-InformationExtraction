@@ -50,12 +50,14 @@ PROMPTS = {
 }
 
 def get_prompt_id(prompt_input):
+    prompt_input = str(prompt_input)
     if prompt_input in PROMPTS:
         return prompt_input
     else:
         return hash(prompt_input)
 
 def get_prompt_text(prompt_input):
+    prompt_input = str(prompt_input)
     if prompt_input in PROMPTS:
         return PROMPTS[prompt_input]
     else:

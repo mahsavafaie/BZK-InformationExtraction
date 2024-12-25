@@ -15,6 +15,7 @@ from accelerate import init_empty_weights
 from transformers import AutoConfig, AutoTokenizer, AutoModel, BitsAndBytesConfig
 from inferable.models.utils import extract_json_info, align_keys
 from inferable.models.prompt_utils import get_prompt_id, get_prompt_text
+from inferable.models.model_revisions import get_model_revision
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +150,7 @@ class InternvlModel(BaseModel):
         device_map = split_model(self.model_name) 
         #device_map = 'auto'
 
+        revision = get_model_revision(self.model_name)
 
         model = AutoModel.from_pretrained(
             self.model_name,
@@ -157,10 +159,11 @@ class InternvlModel(BaseModel):
             low_cpu_mem_usage=True,
             use_flash_attn=True,
             trust_remote_code=True,
+            revision=revision,
             device_map=device_map).eval()
         #print(model.hf_device_map)
 
-        tokenizer = AutoTokenizer.from_pretrained(self.model_name, trust_remote_code=True, use_fast=False)
+        tokenizer = AutoTokenizer.from_pretrained(self.model_name, trust_remote_code=True, use_fast=False, revision=revision)
         #load the model before the loop
 
         prompt_text = get_prompt_text(self.prompt)

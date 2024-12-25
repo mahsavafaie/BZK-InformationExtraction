@@ -142,6 +142,22 @@ def test_json_where_values_contains_comma():
 
     assert(gt == extract_json_info(text))
 
+def test_valid_json():
+    """Test json extraction where the json is completely correct"""
+
+    text = """```python
+{
+    "Applicant First Name": "Max", "Applicant Last Name": "Mustermann", "Applicant Birthdate":"2024-01-01", "Applicant Address":null }"""
+    
+    gt = {
+        "Applicant First Name": "Max",
+        "Applicant Last Name": "Mustermann",
+        "Applicant Birthdate": "2024-01-01",
+        "Applicant Address": None,
+    }
+
+    assert(gt == extract_json_info(text))
+
 #### Test the align_keys function
 
 def test_align_keys():

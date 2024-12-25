@@ -20,6 +20,7 @@ def format_numbers(number):
 def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_folder : str, write_images : bool = True):
     for dataset in datasets:
         dataset_name = dataset.__class__.__name__
+        logger.info(f"Load dataset {dataset_name}")
         training_data, validation_data = dataset.get_training_data(), dataset.get_validation_data()
         test_data = dataset.get_test_data()
 

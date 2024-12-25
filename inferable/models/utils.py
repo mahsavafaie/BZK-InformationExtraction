@@ -148,10 +148,19 @@ def extract_json_info(sequence) -> str:
     if start_pos == -1:
         start_pos = 0
     if end_pos == -1:
-        end_pos = len(sequence)
+        end_pos = len(sequence) # -1 not needed because of slicing (which uses whole string if end_pos is larger than the string)
     
     # split each key value pair by newline or comma
-    semi_json_sequence = sequence[start_pos:end_pos]
+    semi_json_sequence = sequence[start_pos:end_pos + 1] # TODO: endpos + 1?
+    # try first to parse json (needs to be valid json)
+    try:
+        return json.loads(semi_json_sequence)
+    except json.JSONDecodeError as e:
+        pass
+    
+    #remobe opening and closing curly braces
+    semi_json_sequence = semi_json_sequence.strip().strip("{}")
+
     # split by newline first
     json_info = semi_json_sequence.split("\n")
     # split by comma if newline does not work

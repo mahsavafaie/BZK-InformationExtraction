@@ -7,6 +7,12 @@ from nltk import edit_distance
 
 logger = logging.getLogger(__name__)
 
+PREDICT_KEYS = ['CompensationOffice1', 'BZKNr', 
+                'ApplicantFirstName', 'ApplicantLastName', 'ApplicantAltFirstName', 'ApplicantBirthName', 'ApplicantAltLastName', 
+                'ApplicantBirthDate', 'ApplicantBirthPlace', 'ApplicantCurrentAddress', 
+                'VictimFirstName', 'VictimLastName', 'VictimAltFirstName', 'VictimBirthName', 'VictimAltLastName', 
+                'VictimBirthDate', 'VictimBirthPlace', 'VictimDeathDate', 'VictimDeathPlace']
+
 _RE_COMBINE_WHITESPACE = re.compile(r"\s+")
 _POSSIBLE_NULL_VALUES = set(["null", "none", "nil", "nan"])
 

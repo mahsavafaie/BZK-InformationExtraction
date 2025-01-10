@@ -13,7 +13,7 @@ import os
 from torchvision.transforms.functional import InterpolationMode
 from accelerate import init_empty_weights 
 from transformers import AutoConfig, AutoTokenizer, AutoModel, BitsAndBytesConfig
-from inferable.models.utils import extract_json_info, align_keys
+from inferable.models.utils import extract_json_info, align_keys, PREDICT_KEYS
 from inferable.models.prompt_utils import get_prompt_id, get_prompt_text
 from inferable.models.model_revisions import get_model_revision
 
@@ -29,7 +29,7 @@ class InternvlModel(BaseModel):
     """
 
     def __init__(self, model_name :str = "OpenGVLab/InternVL2-40B", prompt :str = "2", quantization :bool = False, key_alignment :bool = True) -> None:
-        self.predict_keys = None
+        self.predict_keys = PREDICT_KEYS
         self.model_name = model_name
         self.prompt = prompt
         self.quantization = quantization
@@ -182,7 +182,7 @@ class InternvlModel(BaseModel):
             yield return_dict
 
     def __str__(self):
-        return "InternvlModel_" + self.model_name.split("/")[-1] + "_p" + get_prompt_id(self.prompt) + "_ka" + str(self.key_alignment)
+        return "InternvlModel_" + self.model_name.split("/")[-1] + "_p" + get_prompt_id(self.prompt) + "_q" + str(self.quantization) + "_ka" + str(self.key_alignment)
 
 
 ####################################################

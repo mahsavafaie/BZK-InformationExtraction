@@ -1,10 +1,8 @@
 import argparse
 import logging
 from inferable.data import get_datasets
-from inferable.models import get_models
-from inferable.evaluation.evaluator import evaluate
-from inferable.prediction.prediction import predict
-from inferable.kg.kg_generation import write_n_triple_file
+from inferable.models import get_models, get_one_model
+
 from typing import List
 import os
 import sys
@@ -74,15 +72,17 @@ def setup_parser() -> argparse.ArgumentParser:
     return parser
 
 def run_evaluation(args: argparse.Namespace) -> None:
+    from inferable.evaluation.evaluator import evaluate
     models = get_models(args.models)
     datasets = get_datasets(args.datasets)
     evaluate(models, datasets, args.out)
 
 def run_prediction(args: argparse.Namespace) -> None:
-    models = get_models(args.model)
-    predict(models[0], args.input, args.prediction)
+    from inferable.prediction.prediction import predict
+    predict(get_one_model(args.model), args.input, args.prediction)
 
 def run_kg_generation(args: argparse.Namespace) -> None:
+    from inferable.kg.kg_generation import write_n_triple_file
     write_n_triple_file(args.prediction, args.kgfile)
 
 def parse_eval_args(parser: argparse.ArgumentParser, cmd_arguments: List[str]) -> argparse.Namespace:
@@ -98,6 +98,9 @@ def parse_eval_args(parser: argparse.ArgumentParser, cmd_arguments: List[str]) -
     if args.gpu:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
+    #TODO:
+    #from transformers import set_seed
+    #set_seed(42)
     # setting random seeds
     seed = 42
     random.seed(seed)
@@ -112,6 +115,7 @@ def write_test_data() -> None:
     import random
     import json
     dataset = get_datasets(['bzk_small_raw'])[0].get_test_data()    
+    #print(dataset.column_names)
     with open('test_data.jsonl', 'w', encoding='utf-8') as file:
         for entry in dataset:
             del entry['image']
@@ -135,7 +139,21 @@ def cli_evaluate() -> None:
         #"eval", "-d", "bzk_small_raw", "-m", "class=InternvlWriteTraining,root_folder=/home/sven/bzk_train_internvl/InternVL/internvl_chat"
         #"eval", "-d", "bzk_small_raw", "-m", "class=InternvlWriteTraining,root_folder=train_folder"
 
-       #"eval", "-d", "bzk_small_raw", "-m", "class=Dummy", "-g", "1"
+        #"eval", "-d", "bzk_small_raw", "-m", "class=Dummy", "-g", "1"
+
+        #"eval", "-d", "bzk_small_raw", "-m", "class=gpt"
+        #"eval", "-d", "bzk_small_raw", "-m", "class=InternvlModel,prompt=5,model_name=/home/sven/bzk_train_internvl/InternVL/internvl_chat/work_dirs/internvl_chat_v2_0/40bmerged"
+        #"eval", "-d", "bzk_small_raw", "-m", "class=InternvlModel,prompt=1,model_name=OpenGVLab/InternVL2-26B"
+        #"eval", "-d", "bzk_small_raw", "-m", "class=InternvlModel,prompt=1,model_name=OpenGVLab/InternVL2-40B"
+        #"eval", "-d", "bzk_small_raw", "-m", "class=InternvlModel,prompt=1,model_name=OpenGVLab/InternVL2-Llama3-76B"
+        #"eval", "-d", "bzk_small_raw", "-m", "class=InternvlModel,prompt=1,model_name=OpenGVLab/InternVL2-40B,quantization=True"
+        
+        #"eval", "-d", "bzk_small_raw", "-m", "class=InternvlFastModel"
+        #"eval", "-d", "bzk_raw", "-m", "class=InternvlFastModel"
+
+        #"predict", "-m", "class=Dummy", "-i", "./many_files", "-p", "many_files.jsonl"
+        #"predict", "-m", "class=InternvlFastModel", "-i", "./many_files", "-p", "many_files.jsonl"
+        #"predict", "-m", "class=InternvlFastModel", "-i", "./few_files", "-p", "few_files.jsonl"
 
         # write knowledge graph
         #"kg", "-p", "test_data.jsonl", "-k", "test_data.nt"

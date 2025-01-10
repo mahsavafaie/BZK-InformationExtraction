@@ -3,6 +3,7 @@ import json
 import gzip
 from PIL import Image
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,7 @@ def predict(model, input_folder, output_file):
         predictions_files = [file for file in os.listdir(input_folder) if file.endswith(".jpg") and file not in already_processed_files]
         logging.info(f"Detected {len(predictions_files)} files that end with .jpg in folder {input_folder} which needs to be processed.")
         image_generator = (Image.open(os.path.join(input_folder, file)) for file in predictions_files)
+        start_time = time.perf_counter()
         for i, results in enumerate(model.predict(image_generator)):
             results['path'] = input_folder
             results['filename'] = predictions_files[i]
@@ -36,3 +38,5 @@ def predict(model, input_folder, output_file):
             json.dump(results, jsonfile)
             jsonfile.write('\n')
             jsonfile.flush() # write to disk directly
+        end_time = time.perf_counter()
+    logger.info(f"Finished prediction in {end_time-start_time} seconds.")

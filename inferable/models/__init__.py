@@ -46,21 +46,24 @@ def get_models(model_texts: List[str]) -> List:
         model_texts = list(models_map.keys())
     models = []
     for model_text in model_texts:
-        if model_text in models_map:
-            module_name, class_name, default_arguments = models_map[model_text]
-            my_class = getattr(importlib.import_module(module_name), class_name)
-            models.append(my_class(**default_arguments))
-        else:
-            # default to parameters in command line like
-            # --models class=LLM,model_name=meta-llama/Llama-2-70b-chat-hf,prompt=prompt1,revision=154f235,extractive_keywords_only=true
-            model_args = __simple_parse_args_string(model_text)
-            if "class" not in model_args:
-                raise ValueError(f"Model argument {model_text} must contain a class key e.g. class=LLM")
-            class_name = model_args.pop("class")
-            if class_name not in models_map:
-                raise ValueError(f"Model class {class_name} not found in models_map")
-            module_name, class_name, default_arguments = models_map[class_name]
-            arguments = {**default_arguments, **model_args}
-            my_class = getattr(importlib.import_module(module_name), class_name)
-            models.append(my_class(**arguments))
+        models.append(get_one_model(model_text))
     return models
+
+def get_one_model(model_text: str):
+    if model_text in models_map:
+        module_name, class_name, default_arguments = models_map[model_text]
+        my_class = getattr(importlib.import_module(module_name), class_name)
+        return my_class(**default_arguments)
+    else:
+        # default to parameters in command line like
+        # --models class=LLM,model_name=meta-llama/Llama-2-70b-chat-hf,prompt=prompt1,revision=154f235,extractive_keywords_only=true
+        model_args = __simple_parse_args_string(model_text)
+        if "class" not in model_args:
+            raise ValueError(f"Model argument {model_text} must contain a class key e.g. class=LLM")
+        class_name = model_args.pop("class")
+        if class_name not in models_map:
+            raise ValueError(f"Model class {class_name} not found in models_map")
+        module_name, class_name, default_arguments = models_map[class_name]
+        arguments = {**default_arguments, **model_args}
+        my_class = getattr(importlib.import_module(module_name), class_name)
+        return my_class(**arguments)

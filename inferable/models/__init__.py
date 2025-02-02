@@ -9,7 +9,7 @@ models_map = {
     "PaliGemmaZeroShot": ("inferable.models.paligemma_model", "PaliGemmaZeroShot", {}),
     "Donutdocvqa": ("inferable.models.DonutDocvqa_model", "DonutModel", {}),
     "InternvlModel": ("inferable.models.Internvl_model", "InternvlModel" , {}),
-    "InternvlFastModel": ("inferable.models.Internvl_fast_model", "InternvlFastModel" , {}),
+    "InternvlVllmModel": ("inferable.models.Internvl_vllm_model", "InternvlVllmModel" , {}),
     "InternvlWriteTraining": ("inferable.models.internvl_write_training", "InternvlWriteTrainModel" , {}),
 }
 

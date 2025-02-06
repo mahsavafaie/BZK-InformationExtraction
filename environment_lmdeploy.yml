@@ -1,0 +1,5 @@
+name: inferable_lmdeploy
+dependencies:
+  - python=3.11.*
+  - pip
+  # do not install pytorch via conda because pip can install torch with separate library packages like NCCL 

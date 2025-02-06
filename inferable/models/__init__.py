@@ -10,6 +10,7 @@ models_map = {
     "Donutdocvqa": ("inferable.models.DonutDocvqa_model", "DonutModel", {}),
     "InternvlModel": ("inferable.models.Internvl_model", "InternvlModel" , {}),
     "InternvlVllmModel": ("inferable.models.Internvl_vllm_model", "InternvlVllmModel" , {}),
+    "InternvlLmdeployModel": ("inferable.models.Internvl_lmdeploy_model", "InternvlLmdeployModel" , {}),
     "InternvlWriteTraining": ("inferable.models.internvl_write_training", "InternvlWriteTrainModel" , {}),
 }
 

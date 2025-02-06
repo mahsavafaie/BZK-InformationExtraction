@@ -1,0 +1,4 @@
+lmdeploy==0.7.0
+timm==1.0.14 # because of error 'from timm.models.layers import DropPath' No module named 'timm'
+flash-attn==2.7.3
+nltk==3.8.1 # for evaluation

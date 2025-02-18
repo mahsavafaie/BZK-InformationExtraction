@@ -20,7 +20,7 @@ class InternvlLmdeployModel(BaseModel):
     Mainly taken from https://github.com/InternLM/lmdeploy/blob/main/docs/en/multi_modal/vl_pipeline.md#batch-prompts-inference
     and https://lmdeploy.readthedocs.io/en/latest/multi_modal/vl_pipeline.html#'''
 
-    def __init__(self, model_name :str = "OpenGVLab/InternVL2-40B", prompt :str = "1", key_alignment :bool = True, batched :bool = True) -> None:
+    def __init__(self, model_name :str = "OpenGVLab/InternVL2_5-38B", prompt :str = "4", key_alignment :bool = True, batched :bool = True) -> None:
         self.predict_keys = PREDICT_KEYS
         self.model_name = model_name
         self.prompt = prompt

@@ -53,7 +53,17 @@ PROMPTS = {
           'When extracting the information about the BZKnr, look at the text around "RegNr" or "Kartei-Nr" or "Register Nr." '
           'or "A.Z." or "Grundlisten-Nr" or "Z.K" or "Art.V-56-II-Nr" or "Eingangsnummer".',
 
-    '5' : '<image>\nExtract BZK data.'
+    #prompt 1 in German
+    '5' : '<image>\nBitte geben Sie die folgenden Informationen, die Sie auf dem Bild sehen können, als Python dictionary an. \n'
+          'Verwenden Sie nur die folgenden Schlüssel: CompensationOffice1, BZKNr, ApplicantFirstName, ApplicantLastName, ApplicantAltFirstName, ApplicantBirthName, '
+          'ApplicantAltLastName, ApplicantBirthDate, ApplicantBirthPlace, ApplicantCurrentAddress, VictimFirstName, VictimLastName, VictimAltFirstName, '
+          'VictimBirthName, VictimAltLastName, VictimBirthDate, VictimBirthPlace, VictimDeathDate, VictimDeathPlace.\n'
+          'Wenn Sie die Informationen über den Antragsteller extrahieren, sehen Sie sich den Text unter den Worten „Anspruchsberechtigter“ oder '
+          '„Antragsteller“. Wenn Sie die Informationen über das Opfer extrahieren, sehen Sie sich den Text unter dem Wort „Verfolgter“ an. '
+          'Wenn Sie die Informationen über die BZKnr extrahieren, sehen Sie sich den Text um „RegNr“ oder „Kartei-Nr“ oder „Register Nr.“ an. '
+          ' oder „A.Z.“ oder „Grundlisten-Nr“ oder „Z.K“ oder „Art.V-56-II-Nr“ oder „Eingangsnummer“.',
+
+    '6' : '<image>\nExtract BZK data.'
 }
 
 def get_prompt_id(prompt_input):

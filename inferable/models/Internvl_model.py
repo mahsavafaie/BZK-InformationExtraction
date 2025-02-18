@@ -28,7 +28,7 @@ class InternvlModel(BaseModel):
     - OpenGVLab/InternVL2-Llama3-76B
     """
 
-    def __init__(self, model_name :str = "OpenGVLab/InternVL2-40B", prompt :str = "2", quantization :bool = False, key_alignment :bool = True) -> None:
+    def __init__(self, model_name :str = "OpenGVLab/InternVL2-2B", prompt :str = "0", quantization :bool = True, key_alignment :bool = True) -> None:
         self.predict_keys = PREDICT_KEYS
         self.model_name = model_name
         self.prompt = prompt
@@ -39,7 +39,7 @@ class InternvlModel(BaseModel):
         self.predict_keys = list(training_data.features.keys())
         self.predict_keys.remove('image')
 
-    def predict(self, test_data: Iterable[Image]) -> Iterable[Dict[str, str]]:
+    def predict(self, validation_data: Iterable[Image]) -> Iterable[Dict[str, str]]:
 
         IMAGENET_MEAN = (0.485, 0.456, 0.406)
         IMAGENET_STD = (0.229, 0.224, 0.225)
@@ -155,7 +155,7 @@ class InternvlModel(BaseModel):
         model = AutoModel.from_pretrained(
             self.model_name,
             torch_dtype=torch.bfloat16,
-            quantization_config=BitsAndBytesConfig(load_in_8bit=True) if self.quantization else None, #in 4-bit provides irrelevant results
+            quantization_config=BitsAndBytesConfig(load_in_bit=True) if self.quantization else None, #in 4-bit provides irrelevant results
             low_cpu_mem_usage=True,
             use_flash_attn=True,
             trust_remote_code=True,
@@ -167,7 +167,7 @@ class InternvlModel(BaseModel):
         #load the model before the loop
 
         prompt_text = get_prompt_text(self.prompt)
-        for image in test_data:
+        for image in validation_data:
             #the inference code
             pixel_values = load_image(image, max_num=12).to(torch.bfloat16).cuda()
             generation_config = dict(max_new_tokens=1024, do_sample=False)
@@ -182,7 +182,7 @@ class InternvlModel(BaseModel):
             yield return_dict
 
     def __str__(self):
-        return "InternvlModel_" + self.model_name.split("/")[-1] + "_p" + get_prompt_id(self.prompt) + "_q" + str(self.quantization) + "_ka" + str(self.key_alignment)
+        return "InternvlModel_" + self.model_name.split("/")[-1] + "_p" + str(get_prompt_id(self.prompt)) + "_q" + str(self.quantization) + "_ka" + str(self.key_alignment)
 
 
 ####################################################

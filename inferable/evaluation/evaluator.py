@@ -103,14 +103,14 @@ def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_fold
                         if predicted_value is None:
                             predicted_value = ""
 
-                        computed_edit_distance = edit_distance(predicted_value, ground_truth_value)
-                        maximum_length = max(len(predicted_value), len(ground_truth_value))
+                        computed_edit_distance = edit_distance(predicted_value.replace(" ", ""), ground_truth_value.replace(" ", ""))
+                        maximum_length = max(len(predicted_value.replace(" ", "")), len(ground_truth_value.replace(" ", "")))
                         computed_normalized_edit_distance = computed_edit_distance / maximum_length if maximum_length > 0 else 0
 
                         #print(f"ground_truth_value: {ground_truth_value}")
                         #print(f"predicted_value: {predicted_value}")
 
-                        if ground_truth_value != "" or predicted_value != "": # Only count non-empty comparisons -> if both are empty, we do not count it
+                        if ground_truth_value.replace(" ", "") != "" or predicted_value.replace(" ", "") != "": # Only count non-empty comparisons -> if both are empty, we do not count it
                             count_of_non_empty_comparisons[prediction_key] += 1
                             count_of_non_empty_comparisons['all'] += 1
                             non_empty_comparisons_of_row += 1

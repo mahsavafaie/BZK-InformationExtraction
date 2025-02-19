@@ -12,6 +12,7 @@ models_map = {
     "InternvlVllmModel": ("inferable.models.Internvl_vllm_model", "InternvlVllmModel" , {}),
     "InternvlLmdeployModel": ("inferable.models.Internvl_lmdeploy_model", "InternvlLmdeployModel" , {}),
     "InternvlWriteTraining": ("inferable.models.internvl_write_training", "InternvlWriteTrainModel" , {}),
+    "gpt": ("inferable.models.gpt_model", "GPTModel" , {}),
 }
 
 

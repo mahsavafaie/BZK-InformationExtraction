@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from PIL.Image import Image
 
 class BaseFewShot(ABC):
-
+    
     @abstractmethod
     def fit(self, training_data: Dataset, validation_dat: Dataset) -> None:
         """Trains the model on the given training and validation data.
@@ -19,7 +19,7 @@ class BaseFewShot(ABC):
         pass
     
     @abstractmethod
-    def get_few_shot_example(self, image : Image, n : int) -> List[Tuple[Image, Dict[str, str]]]:
+    def get_few_shot_examples(self, image : Image) -> List[Tuple[Image, Dict[str, str]]]:
         """Gets a few shot example for the given image.
         Parameters
         ----------
@@ -35,7 +35,7 @@ class BaseFewShot(ABC):
         pass
     
     @abstractmethod
-    def get_few_shot_examples(self, images : List[Image], n : int) -> List[List[Tuple[Image, Dict[str, str]]]]:
+    def get_multi_few_shot_examples(self, images : List[Image]) -> List[List[Tuple[Image, Dict[str, str]]]]:
         """Get few shot examples for multiple images. Might be faster than calling get_few_shot_example multiple times.
 
         Args:

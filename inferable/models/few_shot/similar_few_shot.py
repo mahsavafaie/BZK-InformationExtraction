@@ -6,11 +6,12 @@ from sentence_transformers import SentenceTransformer, util
 
 class SimilarFewShot(BaseFewShot):
 
-    def __init__(self, model_name: str = 'clip-ViT-B-32') -> None:
+    def __init__(self, model_name: str = 'clip-ViT-B-32', n:int = 1) -> None:
         self.model_name = model_name
         self.model = None
         self.corpus_embeddings = None
         self.data = None
+        self.n = n
 
     def fit(self, training_data: Dataset, validation_dat: Dataset) -> None:
         self.model = SentenceTransformer(self.model_name)
@@ -22,18 +23,18 @@ class SimilarFewShot(BaseFewShot):
         self.data = training_data
 
 
-    def get_few_shot_example(self, image : Image, n : int) -> List[Tuple[Image, Dict[str, str]]]:
-        return self.get_few_shot_examples([image], n)[0]
+    def get_few_shot_examples(self, image : Image) -> List[Tuple[Image, Dict[str, str]]]:
+        return self.get_multi_few_shot_examples([image])[0]
 
-    def get_few_shot_examples(self, images : List[Image], n : int) -> List[List[Tuple[Image, Dict[str, str]]]]:
-        if not self.corpus_embeddings:
+    def get_multi_few_shot_examples(self, images : List[Image]) -> List[List[Tuple[Image, Dict[str, str]]]]:
+        if not self.data:
             raise ValueError("SimilarFewShot has to be fitted first")
         
         query_embedding = self.model.encode(images, convert_to_tensor=True)
         query_embedding = query_embedding.to("cuda")
         query_embedding = util.normalize_embeddings(query_embedding)
 
-        all_hits = util.semantic_search(query_embedding, self.corpus_embeddings, score_function=util.dot_score, top_k=n)
+        all_hits = util.semantic_search(query_embedding, self.corpus_embeddings, score_function=util.dot_score, top_k=self.n)
         
         result_list = []
         for hits in all_hits:

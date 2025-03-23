@@ -9,6 +9,7 @@ from inferable.models.prompt_utils import get_prompt_id, get_prompt_text
 from inferable.models.utils import extract_json_info, align_keys, PREDICT_KEYS
 from inferable.models.few_shot import get_few_shot
 from inferable.models.utils import to_json
+from inferable.models.model_revisions import get_model_revision
 from itertools import islice
 from io import BytesIO
 import base64
@@ -93,6 +94,7 @@ class InternvlLmdeployModel(BaseModel):
             tp=number_gpus,
             cache_max_entry_count=0.90, # increase that value if better performance is needed
             # session_len=16384 # check if needed (or increased for few shot methods) -> it defaults to None which should be fine!
+            revision=get_model_revision(self.model_name, None)
         )
         gen_config = GenerationConfig(
             max_new_tokens=500, # usually around 300 tokens generated
@@ -100,7 +102,7 @@ class InternvlLmdeployModel(BaseModel):
             do_sample=False,
         )
 
-        pipe = pipeline(self.model_name, backend_config=backend_config) # TODO: add model revision
+        pipe = pipeline(self.model_name, backend_config=backend_config)
         processed_prompt = get_prompt_text(self.prompt).replace('<image>\n', '')
 
         

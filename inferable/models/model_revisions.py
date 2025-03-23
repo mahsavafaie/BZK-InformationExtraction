@@ -20,5 +20,5 @@ MODEL_REVISIONS = {
 }
 
 
-def get_model_revision(model_name):
-    return MODEL_REVISIONS.get(model_name, "main")
+def get_model_revision(model_name, default_value="main"):
+    return MODEL_REVISIONS.get(model_name, default_value)

@@ -20,7 +20,7 @@ class InternvlLmdeployModel(BaseModel):
     Mainly taken from https://github.com/InternLM/lmdeploy/blob/main/docs/en/multi_modal/vl_pipeline.md#batch-prompts-inference
     and https://lmdeploy.readthedocs.io/en/latest/multi_modal/vl_pipeline.html#'''
 
-    def __init__(self, model_name :str = "OpenGVLab/InternVL2_5-38B", prompt :str = "4", key_alignment :bool = True, batched :bool = True) -> None:
+    def __init__(self, model_name :str = "OpenGVLab/InternVL2-40B", prompt :str = "9", key_alignment :bool = True, batched :bool = True) -> None:
         self.predict_keys = PREDICT_KEYS
         self.model_name = model_name
         self.prompt = prompt
@@ -36,7 +36,7 @@ class InternvlLmdeployModel(BaseModel):
 
         backend_config=TurbomindEngineConfig(
             tp=number_gpus,
-            cache_max_entry_count=0.95
+            #cache_max_entry_count=0.95
         )
         gen_config = GenerationConfig(
             max_new_tokens=500, # usually around 300 tokens generated

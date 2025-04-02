@@ -28,7 +28,7 @@ class InternvlModel(BaseModel):
     - OpenGVLab/InternVL2-Llama3-76B
     """
 
-    def __init__(self, model_name :str = "OpenGVLab/InternVL2-2B", prompt :str = "0", quantization :bool = True, key_alignment :bool = True) -> None:
+    def __init__(self, model_name :str = "OpenGVLab/InternVL2_5-38B", prompt :str = "7", quantization :bool = True, key_alignment :bool = True) -> None:
         self.predict_keys = PREDICT_KEYS
         self.model_name = model_name
         self.prompt = prompt
@@ -155,7 +155,7 @@ class InternvlModel(BaseModel):
         model = AutoModel.from_pretrained(
             self.model_name,
             torch_dtype=torch.bfloat16,
-            quantization_config=BitsAndBytesConfig(load_in_bit=True) if self.quantization else None, #in 4-bit provides irrelevant results
+            quantization_config=BitsAndBytesConfig(load_in_8bit=True) if self.quantization else None, #in 4-bit provides irrelevant results
             low_cpu_mem_usage=True,
             use_flash_attn=True,
             trust_remote_code=True,

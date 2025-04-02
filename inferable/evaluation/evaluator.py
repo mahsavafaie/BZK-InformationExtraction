@@ -103,7 +103,7 @@ def evaluate(models : List[BaseModel], datasets : List[BaseDataset], output_fold
                         if predicted_value is None:
                             predicted_value = ""
 
-                        computed_edit_distance = edit_distance(predicted_value.replace(" ", ""), ground_truth_value.replace(" ", ""))
+                        computed_edit_distance = edit_distance(predicted_value.replace(" ", "").lower(), ground_truth_value.replace(" ", "").lower())
                         maximum_length = max(len(predicted_value.replace(" ", "")), len(ground_truth_value.replace(" ", "")))
                         computed_normalized_edit_distance = computed_edit_distance / maximum_length if maximum_length > 0 else 0
 

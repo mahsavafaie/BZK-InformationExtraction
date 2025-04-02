@@ -13,9 +13,9 @@ conda activate inferable
 pip install -r requirements.txt
 ```
 
-## Inference
+# Inference
 
-# Default dataset
+### Default dataset
 
 to run on the BZK dataset available on HF and evaluate the performance using the Internvl LMdeploy model on two GPUs
 
@@ -25,7 +25,7 @@ python main.py eval -d bzk_raw -m class=InternvlLmdeployModel -g 0,1
 
 To choose a different model (GPT for example), change the variable class in the line above.
 
-# Custom dataset
+### Custom dataset
 
 to run on a directory that contains images with one of the InternvlModels (the default is InternVL2-Llama3-76B)
 
@@ -36,12 +36,12 @@ python main.py -i <address to the directory> -m class=InternvlModel -g <gpu spec
 To choose a different InternVL2 model, change model_name in the __init__ function in /inferable/models/Internvl_model.py
 
 
-## Quantisation
+# Quantisation
 
 To activate quantisation to use less memory, uncomment #load_in_8bit=True in line 141 of /inferable/models/Internvl_model.py
 (#load_in_4bit produces gibberish outcomes)
 
-## Fine-tune InternVl
+# Fine-tune InternVl
 Install their library (further information can be found at their [installation website](https://internvl.readthedocs.io/en/latest/get_started/installation.html))
 - First clone their repository:
 ```

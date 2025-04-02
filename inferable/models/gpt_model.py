@@ -46,12 +46,12 @@ class GPTModel(BaseModel):
         return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
 
-    def fit(self, training_data: datasets.arrow_dataset.Dataset, validation_dat: datasets.arrow_dataset.Dataset) -> None:
+    def fit(self, training_data: datasets.arrow_dataset.Dataset, validation_data: datasets.arrow_dataset.Dataset) -> None:
         self.predict_keys = list(training_data.features.keys())
         self.predict_keys.remove('image')
 
         if self.few_shot_method:
-            self.few_shot_method.fit(training_data, validation_dat)
+            self.few_shot_method.fit(training_data, validation_data)
 
     def get_response_format(self):
         if self.response_format is None:

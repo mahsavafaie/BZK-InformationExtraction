@@ -4,6 +4,7 @@ from typing import List
 few_shot_map = {
     "static": ("inferable.models.few_shot.static_few_shot", "StaticFewShot"),
     "similar": ("inferable.models.few_shot.similar_few_shot", "SimilarFewShot"),
+    "similarcpu": ("inferable.models.few_shot.similarcpu_few_shot", "SimilarCPUFewShot"),
 }
 
 

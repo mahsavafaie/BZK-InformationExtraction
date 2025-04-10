@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class GPTModel(BaseModel):
     
-    def __init__(self, model: str = "gpt-4o-mini-2024-07-18", prompt: str = "1", few_shot : str = "", response_format: str = None, key_alignment :bool = True) -> None:
+    def __init__(self, model: str = "gpt-4o-mini-2024-07-18", prompt: str = "4", few_shot : str = "", response_format: str = None, key_alignment :bool = True) -> None:
         """Inits the GPT Model.
 
         Args:
@@ -120,7 +120,7 @@ class GPTModel(BaseModel):
 
             response = self.client.chat.completions.create(
                 model=self.model,
-                # https://community.openai.com/t/why-the-api-output-is-inconsistent-even-after-the-temperature-is-set-to-0/329541/12
+                # https://community.openai.com/t/why-the-output-is-inconsistent-even-after-the-temperature-is-set-to-0/329541/12
                 # https://community.openai.com/t/achieving-deterministic-api-output-on-language-models-howto/418318
                 top_p=.0000000000000000000001, 
                 messages=messages,

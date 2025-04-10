@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class InternvlVllmModel(BaseModel):
     '''Using fast model with vllm. Mainly taken from https://docs.vllm.ai/en/v0.6.2/getting_started/examples/offline_inference_vision_language.html'''
 
-    def __init__(self, model_name :str = "OpenGVLab/InternVL2-40B", prompt :str = "1", key_alignment :bool = True, batched :bool = True) -> None:
+    def __init__(self, model_name :str = "OpenGVLab/InternVL2-2B", prompt :str = "8", key_alignment :bool = True, batched :bool = True) -> None:
         self.predict_keys = PREDICT_KEYS
         self.model_name = model_name
         self.prompt = prompt

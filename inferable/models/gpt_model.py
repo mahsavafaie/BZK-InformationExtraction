@@ -3,10 +3,11 @@ from typing import Dict, Iterable
 import datasets
 from PIL.Image import Image
 import logging
-
 from io import BytesIO
 import base64
 from openai import OpenAI
+import time
+
 
 from inferable.models.prompt_utils import get_prompt_id, get_prompt_text
 from inferable.models.utils import extract_json_info, align_keys, PREDICT_KEYS
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class GPTModel(BaseModel):
     
-    def __init__(self, model: str = "gpt-4o-mini-2024-07-18", prompt: str = "4", few_shot : str = "", response_format: str = None, key_alignment :bool = True) -> None:
+    def __init__(self, model: str = "gpt-4o-mini-2024-07-18", prompt: str = "4", few_shot : str = "", response_format: str = None, key_alignment :bool = True, sleep :bool=False) -> None:
         """Inits the GPT Model.
 
         Args:
@@ -37,6 +38,7 @@ class GPTModel(BaseModel):
         self.key_alignment = key_alignment
         self.few_shot = few_shot
         self.few_shot_method = get_few_shot(few_shot) if few_shot else None
+        self.sleep = sleep
 
         self.client = OpenAI()
 
@@ -134,6 +136,9 @@ class GPTModel(BaseModel):
             return_dict['full_response'] = response_message
 
             yield return_dict
+
+            if self.sleep:                
+                time.sleep(1)
     
     def __str__(self):
         return "GPTModel_" + self.model.split("/")[-1] + \

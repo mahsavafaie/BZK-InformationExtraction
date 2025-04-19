@@ -7,7 +7,7 @@ import torch
 from transformers import AutoTokenizer
 from inferable.models.prompt_utils import get_prompt_id, get_prompt_text
 from inferable.models.utils import extract_json_info, align_keys, PREDICT_KEYS
-from inferable.models.few_shot import get_few_shot
+from inferable.models.few_shot import get_few_shot, get_few_shot_number
 from inferable.models.utils import to_json
 from inferable.models.model_revisions import get_model_revision
 from itertools import islice
@@ -16,7 +16,7 @@ import base64
 
 
 #vllm imports
-from lmdeploy import pipeline, TurbomindEngineConfig, GenerationConfig
+from lmdeploy import pipeline, TurbomindEngineConfig, GenerationConfig, PytorchEngineConfig
 
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ class InternvlLmdeployModel(BaseModel):
     Mainly taken from https://github.com/InternLM/lmdeploy/blob/main/docs/en/multi_modal/vl_pipeline.md#batch-prompts-inference
     and https://lmdeploy.readthedocs.io/en/latest/multi_modal/vl_pipeline.html#'''
 
-    def __init__(self, model_name :str = "OpenGVLab/InternVL2-40B", prompt :str = "1", few_shot : str = "", key_alignment :bool = True, batched :bool = True) -> None:
+    def __init__(self, model_name :str = "OpenGVLab/InternVL2-40B", prompt :str = "1", few_shot : str = "", fast_engine :bool = True, key_alignment :bool = True, batched :bool = True) -> None:
         """Inits the InternvlLmdeployModel.
 
         Args:
@@ -42,6 +42,7 @@ class InternvlLmdeployModel(BaseModel):
         self.prompt = prompt
         self.few_shot = few_shot
         self.few_shot_method = get_few_shot(few_shot) if few_shot else None
+        self.fast_engine = fast_engine
         self.key_alignment = key_alignment
         self.batched = batched
 
@@ -85,17 +86,40 @@ class InternvlLmdeployModel(BaseModel):
             ]
         }
 
-
+    def get_session_len(self):
+        # we stick to session lengths which are a power of 2
+        number_of_few_shot = get_few_shot_number(self.few_shot)
+        if number_of_few_shot <= 1:
+            return None # use the default session length
+        if number_of_few_shot <= 2:
+            return 16384
+        if number_of_few_shot <= 7:
+            return 32768
+        if number_of_few_shot <= 15:
+            return 65536
+        return 131072
 
     def predict(self, test_data: Iterable[Image]) -> Iterable[Dict[str, str]]:
         number_gpus = torch.cuda.device_count()
+        cache_max_entry_count = 0.90 # increase that value if faster execution is needed
+        session_len = self.get_session_len()
 
-        backend_config=TurbomindEngineConfig(
-            tp=number_gpus,
-            cache_max_entry_count=0.90, # increase that value if better performance is needed
-            # session_len=16384 # check if needed (or increased for few shot methods) -> it defaults to None which should be fine!
-            revision=get_model_revision(self.model_name, None)
-        )
+        if self.fast_engine:
+            backend_config=TurbomindEngineConfig(
+                tp=number_gpus,
+                cache_max_entry_count=cache_max_entry_count,
+                session_len=session_len,
+                revision=get_model_revision(self.model_name, None)
+            )
+        else:
+            backend_config = PytorchEngineConfig(
+                tp=number_gpus,
+                cache_max_entry_count=cache_max_entry_count,
+                session_len=session_len,
+                revision=get_model_revision(self.model_name, None)
+            )
+
+
         gen_config = GenerationConfig(
             max_new_tokens=500, # usually around 300 tokens generated
             temperature=0.0,
@@ -169,7 +193,33 @@ class InternvlLmdeployModel(BaseModel):
     def __str__(self):
         return "InternvlLmdeployModel_" + self.model_name.split("/")[-1] + \
             "_p-" + get_prompt_id(self.prompt) + '_fewshot-' + str(self.few_shot) + \
-            "_batched-" + str(self.batched) + "_align-" + str(self.key_alignment)
+            "_fast-" + str(self.fast_engine) + "_batched-" + str(self.batched) + \
+            "_align-" + str(self.key_alignment)
 
 # openai format prompt:
 # https://lmdeploy.readthedocs.io/en/v0.4.2/inference/vl_pipeline.html
+
+
+# markdown table for static and session length
+# | static| length=None | length=8192 | length=16384 | length=32768 | length=65536 |
+# | ---   | ---         | ---         | ---          | ---          | ---          | 
+# | 1     | yes         | yes         |              |              |
+# | 2     | no          | no          | yes          |              |
+# | 3     | no          | no          | yes          |              |
+# | 4     |             |             | no           | yes          |
+# | 5     | no          |             |              |              |
+# | 6     |             |             |              | yes          |
+# | 7     |             |             |              |              |
+# | 8     |             |             |              | yes          |
+# | 9     |             |             |              | no           |
+# | 10    |             |             |              | no           |
+# | 11    |             |             |              |              |
+# | 12    |             |             |              |              |
+# | 13    |             |             |              |              |
+# | 14    |             |             |              |              | yes          |
+# | 15    |             |             |              |              |
+# | 16    |             |             |              |              | yes          |
+# | 17    |             |             |              |              | no           |
+# | 18    |             |             |              |              | no           |
+# | 19    |             |             |              |              |
+# | 20    |             |             |              |              |

@@ -35,11 +35,11 @@ class InternvlModel(BaseModel):
         self.quantization = quantization
         self.key_alignment = key_alignment
 
-    def fit(self, training_data: datasets.arrow_dataset.Dataset, validation_dat: datasets.arrow_dataset.Dataset) -> None:
+    def fit(self, training_data: datasets.arrow_dataset.Dataset, validation_data: datasets.arrow_dataset.Dataset) -> None:
         self.predict_keys = list(training_data.features.keys())
         self.predict_keys.remove('image')
 
-    def predict(self, validation_data: Iterable[Image]) -> Iterable[Dict[str, str]]:
+    def predict(self, test_data: Iterable[Image]) -> Iterable[Dict[str, str]]:
 
         IMAGENET_MEAN = (0.485, 0.456, 0.406)
         IMAGENET_STD = (0.229, 0.224, 0.225)
@@ -167,7 +167,7 @@ class InternvlModel(BaseModel):
         #load the model before the loop
 
         prompt_text = get_prompt_text(self.prompt)
-        for image in validation_data:
+        for image in test_data:
             #the inference code
             pixel_values = load_image(image, max_num=12).to(torch.bfloat16).cuda()
             generation_config = dict(max_new_tokens=1024, do_sample=False)

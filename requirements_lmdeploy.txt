@@ -3,3 +3,4 @@ timm==1.0.14 # because of error 'from timm.models.layers import DropPath' No mod
 flash-attn==2.7.3
 sentence-transformers==3.4.1
 nltk==3.8.1 # for evaluation
+transformers==4.48.2

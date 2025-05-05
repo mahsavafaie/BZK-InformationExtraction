@@ -7,6 +7,7 @@ from io import BytesIO
 import base64
 from openai import OpenAI
 import time
+from openai import RateLimitError
 
 
 from inferable.models.prompt_utils import get_prompt_id, get_prompt_text
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class GPTModel(BaseModel):
     
-    def __init__(self, model: str = "gpt-4o-mini-2024-07-18", prompt: str = "4", few_shot : str = "", response_format: str = None, key_alignment :bool = True, sleep :bool=False) -> None:
+    def __init__(self, model: str = "gpt-4o-mini-2024-07-18", prompt: str = "4", few_shot : str = "", response_format: str = None, key_alignment :bool = True, sleep :bool=True) -> None:
         """Inits the GPT Model.
 
         Args:
@@ -119,26 +120,30 @@ class GPTModel(BaseModel):
                     messages.append(self.get_assistant_message(few_shot_dict))
 
             messages.append(self.get_user_message(prediction_image))
-
-            response = self.client.chat.completions.create(
-                model=self.model,
+            while True:
+                try: 
+                    response = self.client.chat.completions.create(
+                        model=self.model,
                 # https://community.openai.com/t/why-the-output-is-inconsistent-even-after-the-temperature-is-set-to-0/329541/12
                 # https://community.openai.com/t/achieving-deterministic-api-output-on-language-models-howto/418318
-                top_p=.0000000000000000000001, 
-                messages=messages,
-                response_format=self.get_response_format()
-            )
-            response_message = response.choices[0].message.content
+                        top_p=1e-25, 
+                        messages=messages,
+                        response_format=self.get_response_format()
+                    )
+                    response_message = response.choices[0].message.content
 
-            return_dict = extract_json_info(response_message)
-            if self.key_alignment:
-                return_dict = align_keys(self.predict_keys, return_dict)
-            return_dict['full_response'] = response_message
+                    return_dict = extract_json_info(response_message)
+                    if self.key_alignment:
+                        return_dict = align_keys(self.predict_keys, return_dict)
+                    return_dict['full_response'] = response_message
 
-            yield return_dict
+                    yield return_dict
+                    break
+                except RateLimitError as e:
 
-            if self.sleep:                
-                time.sleep(1)
+        #if self.sleep:    
+                    print("Rate limit hit. Retrying...")            
+                    time.sleep(1)
     
     def __str__(self):
         return "GPTModel_" + self.model.split("/")[-1] + \
